@@ -467,8 +467,8 @@ MonoBehaviour:
     m_OverrideState: 0
     m_Value: 1
   adaptationSpeedDarkToLight:
-    m_OverrideState: 0
-    m_Value: 3
+    m_OverrideState: 1
+    m_Value: 2
     min: 0.001
   adaptationSpeedLightToDark:
     m_OverrideState: 0

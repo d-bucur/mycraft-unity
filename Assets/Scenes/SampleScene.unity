@@ -152,7 +152,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5227cc32ff04d342a1071010bdc0c07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  viewRange: 100
+  viewRange: 3
+  generationDepth: 1
+  sectorSize: 10
   noiseMaps:
   - amplitude: 30
     frequency: 0.05
@@ -163,7 +165,6 @@ MonoBehaviour:
     power: 1
     offset: {x: 0, y: 0}
   blockTemplate: {fileID: 6596014162597018839, guid: cd8021b580a98044192a7a15c0d4a413, type: 3}
-  blockSize: 1
 --- !u!4 &196098818
 Transform:
   m_ObjectHideFlags: 0

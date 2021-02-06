@@ -1,26 +1,40 @@
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public class WorldGenerator : MonoBehaviour {
     public int viewRange;
+    public int generationDepth = 1;
+    public int sectorSize;
     public List<NoiseMap> noiseMaps;
     public GameObject blockTemplate;
-    public float blockSize = 1f;
+
+    private Dictionary<Vector2Int, Sector> _sectors = default;
 
     private void OnEnable() {
         GenerateInitialMap();
     }
 
     private void GenerateInitialMap() {
-        var pos = new Vector2Int();
         for (var x = -viewRange; x <= viewRange; x++) {
-            pos.x = x;
             for (var y = -viewRange; y <= viewRange; y++) {
-                pos.y = y;
-                var z = SampleMaps(pos);
-                GameObject.Instantiate(blockTemplate, new Vector3(x, z, y), Quaternion.identity, transform);
+                GenerateSector(new Sector(new Vector2Int(x, y)));
+            }
+        }
+    }
+
+    private void GenerateSector(Sector sector) {
+        for (var x = -sectorSize; x <= sectorSize; x++) {
+            for (var y = -sectorSize; y <= sectorSize; y++) {
+                var worldPosition = sector.offset * sectorSize + new Vector2Int(x, y);
+                int groundZ = (int)SampleMaps(worldPosition);
+                for (var z = groundZ - generationDepth + 1; z <= groundZ; z++) {
+                    sector.blocks.Add(new Vector3Int(worldPosition.x, worldPosition.y, z), BlockType.Default);
+                    var go = Instantiate(blockTemplate,
+                        new Vector3(worldPosition.x, z, worldPosition.y),
+                        Quaternion.identity, transform);
+                    sector.GameObjects.Add(go);
+                }
             }
         }
     }
