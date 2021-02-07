@@ -153,7 +153,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   viewRange: 6
-  generationDepth: 3
+  generationDepth: 1
   sectorSize: 30
   noiseMaps:
   - amplitude: 30
@@ -486,6 +486,7 @@ GameObject:
   - component: {fileID: 2095145686}
   - component: {fileID: 2095145685}
   - component: {fileID: 2095145688}
+  - component: {fileID: 2095145689}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -505,10 +506,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6579b8ce0f05d054b8697eda7b818ea0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkingSpeed: 14
+  walkingSpeed: 15
   runningSpeed: 30
   jumpSpeed: 12
-  gravity: 5
+  gravity: 20
   playerCamera: {fileID: 963194227}
   lookSpeed: 2
   lookXLimit: 85
@@ -573,3 +574,17 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+--- !u!114 &2095145689
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2095145684}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c708c0835c55a249a01ef0ae0d3dd0c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxDistance: 10
+  camera: {fileID: 963194228}

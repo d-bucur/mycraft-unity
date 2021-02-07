@@ -1,18 +1,21 @@
-using System.Collections;
-using System.Collections.Generic;
+using System;
 using UnityEngine;
 
-public class Builder : MonoBehaviour
-{
-    // Start is called before the first frame update
-    void Start()
-    {
-        
+public class Builder : MonoBehaviour {
+    public float maxDistance = 5f;
+    public new Transform camera;
+    
+    private int _layerMask;
+
+    private void Awake() {
+        _layerMask = LayerMask.GetMask("World");
     }
 
-    // Update is called once per frame
-    void Update()
-    {
-        
+    void Update() {
+        RaycastHit hit;
+        var hasHit = Physics.Raycast(new Ray(transform.position, camera.forward), out hit, maxDistance, _layerMask);
+        if (!hasHit)
+            return;
+        Debug.DrawLine(transform.position, hit.point, Color.red, 1f);
     }
 }
