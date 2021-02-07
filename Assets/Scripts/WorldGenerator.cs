@@ -35,9 +35,10 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void GenerateSector(Sector sector) {
+        var sectorSizeLimit = (float)sectorSize / 2;
         var sectorBase = sector.offset * sectorSize;
-        for (var x = -sectorSize; x <= sectorSize; x++) {
-            for (var y = -sectorSize; y <= sectorSize; y++) {
+        for (var x = Mathf.CeilToInt(-sectorSizeLimit); x < sectorSizeLimit; x++) {
+            for (var y = Mathf.CeilToInt(-sectorSizeLimit); y < sectorSizeLimit; y++) {
                 var worldCoord = sectorBase + new Vector2Int(x, y);
                 int groundZ = (int)SampleMaps(worldCoord);
                 for (var z = groundZ - generationDepth + 1; z <= groundZ; z++) {
@@ -126,5 +127,6 @@ public class WorldGenerator : MonoBehaviour {
             go.gameObject.SetActive(false);
         _freeBlocksDeactivated.AddRange(_freeBlocksUncommited);
         _freeBlocksUncommited.Clear();
+        //Debug.Log("Block count: " + transform.childCount);
     }
 }

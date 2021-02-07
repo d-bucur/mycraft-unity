@@ -152,9 +152,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5227cc32ff04d342a1071010bdc0c07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  viewRange: 4
-  generationDepth: 1
-  sectorSize: 16
+  viewRange: 6
+  generationDepth: 3
+  sectorSize: 30
   noiseMaps:
   - amplitude: 30
     frequency: 0.05
@@ -163,6 +163,10 @@ MonoBehaviour:
   - amplitude: 100
     frequency: 0.01
     power: 1
+    offset: {x: 0, y: 0}
+  - amplitude: 200
+    frequency: 0.01
+    power: 4
     offset: {x: 0, y: 0}
   blockTemplate: {fileID: 6596014162597018839, guid: cd8021b580a98044192a7a15c0d4a413, type: 3}
 --- !u!4 &196098818
@@ -501,9 +505,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6579b8ce0f05d054b8697eda7b818ea0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkingSpeed: 7.5
-  runningSpeed: 11.5
-  jumpSpeed: 8
+  walkingSpeed: 14
+  runningSpeed: 30
+  jumpSpeed: 12
   gravity: 5
   playerCamera: {fileID: 963194227}
   lookSpeed: 2
