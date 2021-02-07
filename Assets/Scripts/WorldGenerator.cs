@@ -8,13 +8,15 @@ public class WorldGenerator : MonoBehaviour {
     public int generationDepth = 1;
     public int sectorSize;
     public List<NoiseMap> noiseMaps;
+    public float regenTimeBudget;
     public GameObject blockTemplate;
     
+    private static WorldGenerator _instance;
+    private Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
     private List<Transform> _freeBlocksDeactivated = new List<Transform>();
     private List<Transform> _freeBlocksUncommited = new List<Transform>();
-    private Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
-    private static WorldGenerator _instance;
-    
+    private Queue<Tuple<Vector2Int, Vector2Int>> _sectorsToUpdate = new Queue<Tuple<Vector2Int, Vector2Int>>();
+
     public static WorldGenerator Instance {
         get { return _instance; }
     }
@@ -51,6 +53,12 @@ public class WorldGenerator : MonoBehaviour {
         }
     }
 
+    private void UnloadSector(Sector sector) {
+        _freeBlocksUncommited.AddRange(sector.GameObjects);
+        sector.blocks.Clear();
+        sector.GameObjects.Clear();
+    }
+
     private Transform CreateGO(Vector3 worldPos) {
         if (_freeBlocksUncommited.Count > 0) {
             var go = _freeBlocksUncommited[_freeBlocksUncommited.Count - 1];
@@ -69,12 +77,6 @@ public class WorldGenerator : MonoBehaviour {
             return Instantiate(blockTemplate, worldPos, Quaternion.identity, transform).transform;
     }
 
-    private void UnloadSector(Sector sector) {
-        _freeBlocksUncommited.AddRange(sector.GameObjects);
-        sector.blocks.Clear();
-        sector.GameObjects.Clear();
-    }
-
     private float SampleMaps(Vector2Int pos) {
         var res = 0.0f;
         for (var i = 0; i < noiseMaps.Count; i++)
@@ -89,34 +91,40 @@ public class WorldGenerator : MonoBehaviour {
             var removeX = oldPos.x - (int) Mathf.Sign(delta.x) * viewRange;
             var addX = newPos.x + (int) Mathf.Sign(delta.x) * viewRange;
             for (var y = oldPos.y - viewRange; y <= oldPos.y + viewRange; y++) {
-                var removePos = new Vector2Int(removeX, y);
-                //Debug.Log("Removing sector " + removePos);
-                var sector = _sectors[removePos];
-                UnloadSector(sector);
-                _sectors.Remove(removePos);
-                
-                var addPos = new Vector2Int(addX, y);
-                sector.offset = addPos;
-                //Debug.Log("Adding sector " + addPos);
-                GenerateSector(sector);
-                _sectors.Add(addPos, sector);
+                var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(removeX, y), new Vector2Int(addX, y));
+                _sectorsToUpdate.Enqueue(t);
             }
         }
         if (Mathf.Abs(delta.y) > 0) {
             var removeY = oldPos.y - (int) Mathf.Sign(delta.y) * viewRange;
             var addY = newPos.y + (int) Mathf.Sign(delta.y) * viewRange;
             for (var x = oldPos.x - viewRange; x <= oldPos.x + viewRange; x++) {
-                var removePos = new Vector2Int(x, removeY);
-                //Debug.Log("Removing sector " + removePos);
-                var sector = _sectors[removePos];
-                UnloadSector(sector);
-                _sectors.Remove(removePos);
-                
-                var addPos = new Vector2Int(x, addY);
-                sector.offset = addPos;
-                //Debug.Log("Adding sector " + addPos);
-                GenerateSector(sector);
-                _sectors.Add(addPos, sector);
+                var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(x, removeY), new Vector2Int(x, addY));
+                _sectorsToUpdate.Enqueue(t);
+            }
+        }
+    }
+
+    private void LateUpdate() {
+        var startTime = Time.realtimeSinceStartup;
+        while (_sectorsToUpdate.Count > 0) {
+            _sectorsToUpdate.Dequeue().Deconstruct(
+                out var removePos, 
+                out var addPos
+            );
+            
+            var sector = _sectors[removePos];
+            UnloadSector(sector);
+            _sectors.Remove(removePos);
+            
+            sector.offset = addPos;
+            GenerateSector(sector);
+            _sectors.Add(addPos, sector);
+
+            var deltaTime = Time.realtimeSinceStartup - startTime;
+            if (deltaTime > regenTimeBudget) {
+                Debug.LogWarning("Skipping update to next frame due to budget restriction");
+                break;
             }
         }
         CommitBlockChanges();
