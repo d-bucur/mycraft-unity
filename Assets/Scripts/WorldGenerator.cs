@@ -9,8 +9,9 @@ public class WorldGenerator : MonoBehaviour {
     public int sectorSize;
     public List<NoiseMap> noiseMaps;
     public GameObject blockTemplate;
-    private List<GameObject> _freeBlockGOs = new List<GameObject>();
-
+    
+    private List<Transform> _freeBlocksDeactivated = new List<Transform>();
+    private List<Transform> _freeBlocksUncommited = new List<Transform>();
     private Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
     private static WorldGenerator _instance;
     
@@ -49,33 +50,39 @@ public class WorldGenerator : MonoBehaviour {
         }
     }
 
-    private GameObject CreateGO(Vector3 worldPos) {
-        if (_freeBlockGOs.Count > 0) {
-            var go = _freeBlockGOs.Last();
-            _freeBlockGOs.RemoveAt(_freeBlockGOs.Count-1);
-            go.SetActive(true);
-            go.transform.position = worldPos;
+    private Transform CreateGO(Vector3 worldPos) {
+        if (_freeBlocksUncommited.Count > 0) {
+            var go = _freeBlocksUncommited[_freeBlocksUncommited.Count - 1];
+            _freeBlocksUncommited.RemoveAt(_freeBlocksUncommited.Count - 1);
+            go.position = worldPos;
+            return go;
+        }
+        else if (_freeBlocksDeactivated.Count > 0) {
+            var go = _freeBlocksDeactivated[_freeBlocksDeactivated.Count-1];
+            _freeBlocksDeactivated.RemoveAt(_freeBlocksDeactivated.Count-1);
+            go.gameObject.SetActive(true);
+            go.position = worldPos;
             return go;
         }
         else
-            return Instantiate(blockTemplate, worldPos, Quaternion.identity, transform);
+            return Instantiate(blockTemplate, worldPos, Quaternion.identity, transform).transform;
     }
 
-    private void UnloadSector(Sector sector, bool softRemoval = false) {
-        sector.blocks = null;
-        _freeBlockGOs.AddRange(sector.GameObjects);
-        if (softRemoval) return;
-        foreach (var blockGO in sector.GameObjects) {
-            blockGO.SetActive(false);
-        }
+    private void UnloadSector(Sector sector) {
+        _freeBlocksUncommited.AddRange(sector.GameObjects);
+        sector.blocks.Clear();
+        sector.GameObjects.Clear();
     }
 
     private float SampleMaps(Vector2Int pos) {
-        return noiseMaps.Aggregate(0f, (res, map) => res + map.Sample(pos));
+        var res = 0.0f;
+        for (var i = 0; i < noiseMaps.Count; i++)
+            res += noiseMaps[i].Sample(pos);
+        return res;
     }
 
     public void OnPlayerMoved(Vector2Int oldPos, Vector2Int newPos) {
-        Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
+        //Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
         var delta = newPos - oldPos;
         if (Mathf.Abs(delta.x) > 0) {
             var removeX = oldPos.x - (int) Mathf.Sign(delta.x) * viewRange;
@@ -83,14 +90,15 @@ public class WorldGenerator : MonoBehaviour {
             for (var y = oldPos.y - viewRange; y <= oldPos.y + viewRange; y++) {
                 var removePos = new Vector2Int(removeX, y);
                 //Debug.Log("Removing sector " + removePos);
-                UnloadSector(_sectors[removePos]);
+                var sector = _sectors[removePos];
+                UnloadSector(sector);
                 _sectors.Remove(removePos);
                 
                 var addPos = new Vector2Int(addX, y);
+                sector.offset = addPos;
                 //Debug.Log("Adding sector " + addPos);
-                var newSector = new Sector(addPos);
-                GenerateSector(newSector);
-                _sectors.Add(addPos, newSector);
+                GenerateSector(sector);
+                _sectors.Add(addPos, sector);
             }
         }
         if (Mathf.Abs(delta.y) > 0) {
@@ -99,15 +107,24 @@ public class WorldGenerator : MonoBehaviour {
             for (var x = oldPos.x - viewRange; x <= oldPos.x + viewRange; x++) {
                 var removePos = new Vector2Int(x, removeY);
                 //Debug.Log("Removing sector " + removePos);
-                UnloadSector(_sectors[removePos]);
+                var sector = _sectors[removePos];
+                UnloadSector(sector);
                 _sectors.Remove(removePos);
                 
                 var addPos = new Vector2Int(x, addY);
+                sector.offset = addPos;
                 //Debug.Log("Adding sector " + addPos);
-                var newSector = new Sector(addPos);
-                GenerateSector(newSector);
-                _sectors.Add(addPos, newSector);
+                GenerateSector(sector);
+                _sectors.Add(addPos, sector);
             }
         }
+        CommitBlockChanges();
+    }
+
+    private void CommitBlockChanges() {
+        foreach (var go in _freeBlocksUncommited)
+            go.gameObject.SetActive(false);
+        _freeBlocksDeactivated.AddRange(_freeBlocksUncommited);
+        _freeBlocksUncommited.Clear();
     }
 }
