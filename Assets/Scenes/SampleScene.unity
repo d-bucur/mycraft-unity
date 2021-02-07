@@ -152,9 +152,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5227cc32ff04d342a1071010bdc0c07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  viewRange: 0
+  viewRange: 4
   generationDepth: 1
-  sectorSize: 5
+  sectorSize: 16
   noiseMaps:
   - amplitude: 30
     frequency: 0.05
@@ -504,10 +504,10 @@ MonoBehaviour:
   walkingSpeed: 7.5
   runningSpeed: 11.5
   jumpSpeed: 8
-  gravity: 20
+  gravity: 5
   playerCamera: {fileID: 963194227}
   lookSpeed: 2
-  lookXLimit: 45
+  lookXLimit: 85
   canMove: 1
 --- !u!143 &2095145686
 CharacterController:
@@ -523,7 +523,7 @@ CharacterController:
   m_Height: 2
   m_Radius: 0.5
   m_SlopeLimit: 45
-  m_StepOffset: 0.7
+  m_StepOffset: 1
   m_SkinWidth: 0.08
   m_MinMoveDistance: 0.001
   m_Center: {x: 0, y: 0, z: 0}
@@ -535,7 +535,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2095145684}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalPosition: {x: 0, y: 5.79, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 963194228}

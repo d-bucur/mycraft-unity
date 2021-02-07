@@ -9,7 +9,9 @@ public class PositionTracker : MonoBehaviour {
     private void FixedUpdate() {
         var sectorSize = WorldGenerator.Instance.sectorSize;
         var position = transform.position;
-        var currentPos = new Vector2Int((int)position.x, (int)position.z) / sectorSize;
+        var currentPosF = new Vector2(position.x, position.z) / sectorSize;
+        var currentPos = new Vector2Int((int)currentPosF.x, (int)currentPosF.y);
+        //Debug.Log("Current sector: " + currentPos);
         if (currentPos != lastPos) {
             OnPlayerMoved.Invoke(lastPos, currentPos);
             lastPos = currentPos;

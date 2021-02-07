@@ -34,7 +34,7 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void GenerateSector(Sector sector) {
-        var sectorBase = sector.offset * (2 * sectorSize);
+        var sectorBase = sector.offset * sectorSize;
         for (var x = -sectorSize; x <= sectorSize; x++) {
             for (var y = -sectorSize; y <= sectorSize; y++) {
                 var worldCoord = sectorBase + new Vector2Int(x, y);
@@ -76,10 +76,38 @@ public class WorldGenerator : MonoBehaviour {
 
     public void OnPlayerMoved(Vector2Int oldPos, Vector2Int newPos) {
         Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
-        UnloadSector(_sectors[oldPos]);
-        _sectors.Remove(oldPos);
-        var newSector = new Sector(newPos);
-        GenerateSector(newSector);
-        _sectors.Add(newPos, newSector);
+        var delta = newPos - oldPos;
+        if (Mathf.Abs(delta.x) > 0) {
+            var removeX = oldPos.x - (int) Mathf.Sign(delta.x) * viewRange;
+            var addX = newPos.x + (int) Mathf.Sign(delta.x) * viewRange;
+            for (var y = oldPos.y - viewRange; y <= oldPos.y + viewRange; y++) {
+                var removePos = new Vector2Int(removeX, y);
+                //Debug.Log("Removing sector " + removePos);
+                UnloadSector(_sectors[removePos]);
+                _sectors.Remove(removePos);
+                
+                var addPos = new Vector2Int(addX, y);
+                //Debug.Log("Adding sector " + addPos);
+                var newSector = new Sector(addPos);
+                GenerateSector(newSector);
+                _sectors.Add(addPos, newSector);
+            }
+        }
+        if (Mathf.Abs(delta.y) > 0) {
+            var removeY = oldPos.y - (int) Mathf.Sign(delta.y) * viewRange;
+            var addY = newPos.y + (int) Mathf.Sign(delta.y) * viewRange;
+            for (var x = oldPos.x - viewRange; x <= oldPos.x + viewRange; x++) {
+                var removePos = new Vector2Int(x, removeY);
+                //Debug.Log("Removing sector " + removePos);
+                UnloadSector(_sectors[removePos]);
+                _sectors.Remove(removePos);
+                
+                var addPos = new Vector2Int(x, addY);
+                //Debug.Log("Adding sector " + addPos);
+                var newSector = new Sector(addPos);
+                GenerateSector(newSector);
+                _sectors.Add(addPos, newSector);
+            }
+        }
     }
 }
