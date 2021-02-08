@@ -4,16 +4,15 @@ using UnityEngine;
 
 public class WorldGenerator : MonoBehaviour {
     public int viewRange;
-    public int generationDepth = 1;
     public int sectorSize;
     public List<NoiseMap> noiseMaps;
     public float regenTimeBudget;
     public GameObject blockTemplate;
+    public Sector sectorTemplate;
+    public SectorGenerator sectorGenerator;
     
     private static WorldGenerator _instance;
     private Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
-    private List<Transform> _freeBlocksDeactivated = new List<Transform>();
-    private List<Transform> _freeBlocksUncommited = new List<Transform>();
     private Queue<Tuple<Vector2Int, Vector2Int>> _sectorsToUpdate = new Queue<Tuple<Vector2Int, Vector2Int>>();
 
     public static WorldGenerator Instance {
@@ -28,7 +27,12 @@ public class WorldGenerator : MonoBehaviour {
     private void GenerateInitialMap() {
         for (var x = -viewRange; x <= viewRange; x++) {
             for (var y = -viewRange; y <= viewRange; y++) {
-                var sector = new Sector(new Vector2Int(x, y));
+                var sector = Instantiate(
+                    sectorTemplate, 
+                    new Vector3(x, 0, y) * sectorSize, 
+                    Quaternion.identity
+                    );
+                sector.offset = new Vector2Int(x, y);
                 GenerateSector(sector);
                 _sectors.Add(sector.offset, sector);
             }
@@ -42,38 +46,24 @@ public class WorldGenerator : MonoBehaviour {
             for (var y = Mathf.CeilToInt(-sectorSizeLimit); y < sectorSizeLimit; y++) {
                 var worldCoord = sectorBase + new Vector2Int(x, y);
                 int groundZ = (int)SampleMaps(worldCoord);
-                for (var z = groundZ - generationDepth + 1; z <= groundZ; z++) {
-                    sector.blocks.Add(new Vector3Int(worldCoord.x, worldCoord.y, z), BlockType.Default);
-                    var worldPos = new Vector3(worldCoord.x, z, worldCoord.y);
-                    var go = CreateGO(worldPos);
-                    sector.GameObjects.Add(go);
+                // TODO handle Z properly
+                for (var z = -25; z < 25; z++) {
+                    var blockType = (z <= groundZ) ? BlockType.Default : BlockType.Empty;
+                    sector.blocks.Add(new Vector3Int(x, z, y), blockType);
+                    // TODO unly used for debugging
+                    // var worldPos = new Vector3(worldCoord.x, z, worldCoord.y);
+                    // if (blockType == BlockType.Default)
+                    //     Instantiate(blockTemplate, worldPos, Quaternion.identity);
                 }
             }
         }
+        sectorGenerator.FillSectorMesh(sector);
     }
 
     private void UnloadSector(Sector sector) {
-        _freeBlocksUncommited.AddRange(sector.GameObjects);
-        sector.blocks.Clear();
-        sector.GameObjects.Clear();
-    }
-
-    private Transform CreateGO(Vector3 worldPos) {
-        if (_freeBlocksUncommited.Count > 0) {
-            var go = _freeBlocksUncommited[_freeBlocksUncommited.Count - 1];
-            _freeBlocksUncommited.RemoveAt(_freeBlocksUncommited.Count - 1);
-            go.position = worldPos;
-            return go;
-        }
-        else if (_freeBlocksDeactivated.Count > 0) {
-            var go = _freeBlocksDeactivated[_freeBlocksDeactivated.Count-1];
-            _freeBlocksDeactivated.RemoveAt(_freeBlocksDeactivated.Count-1);
-            go.gameObject.SetActive(true);
-            go.position = worldPos;
-            return go;
-        }
-        else
-            return Instantiate(blockTemplate, worldPos, Quaternion.identity, transform).transform;
+        // _freeBlocksUncommited.AddRange(sector.GameObjects);
+        // sector.blocks.Clear();
+        // sector.GameObjects.Clear();
     }
 
     private float SampleMaps(Vector2Int pos) {
@@ -85,23 +75,23 @@ public class WorldGenerator : MonoBehaviour {
 
     public void OnPlayerMoved(Vector2Int oldPos, Vector2Int newPos) {
         //Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
-        var delta = newPos - oldPos;
-        if (Mathf.Abs(delta.x) > 0) {
-            var removeX = oldPos.x - (int) Mathf.Sign(delta.x) * viewRange;
-            var addX = newPos.x + (int) Mathf.Sign(delta.x) * viewRange;
-            for (var y = oldPos.y - viewRange; y <= oldPos.y + viewRange; y++) {
-                var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(removeX, y), new Vector2Int(addX, y));
-                _sectorsToUpdate.Enqueue(t);
-            }
-        }
-        if (Mathf.Abs(delta.y) > 0) {
-            var removeY = oldPos.y - (int) Mathf.Sign(delta.y) * viewRange;
-            var addY = newPos.y + (int) Mathf.Sign(delta.y) * viewRange;
-            for (var x = oldPos.x - viewRange; x <= oldPos.x + viewRange; x++) {
-                var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(x, removeY), new Vector2Int(x, addY));
-                _sectorsToUpdate.Enqueue(t);
-            }
-        }
+        // var delta = newPos - oldPos;
+        // if (Mathf.Abs(delta.x) > 0) {
+        //     var removeX = oldPos.x - (int) Mathf.Sign(delta.x) * viewRange;
+        //     var addX = newPos.x + (int) Mathf.Sign(delta.x) * viewRange;
+        //     for (var y = oldPos.y - viewRange; y <= oldPos.y + viewRange; y++) {
+        //         var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(removeX, y), new Vector2Int(addX, y));
+        //         _sectorsToUpdate.Enqueue(t);
+        //     }
+        // }
+        // if (Mathf.Abs(delta.y) > 0) {
+        //     var removeY = oldPos.y - (int) Mathf.Sign(delta.y) * viewRange;
+        //     var addY = newPos.y + (int) Mathf.Sign(delta.y) * viewRange;
+        //     for (var x = oldPos.x - viewRange; x <= oldPos.x + viewRange; x++) {
+        //         var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(x, removeY), new Vector2Int(x, addY));
+        //         _sectorsToUpdate.Enqueue(t);
+        //     }
+        // }
     }
 
     private void LateUpdate() {
@@ -130,10 +120,10 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void CommitBlockChanges() {
-        foreach (var go in _freeBlocksUncommited)
+        /*foreach (var go in _freeBlocksUncommited)
             go.gameObject.SetActive(false);
         _freeBlocksDeactivated.AddRange(_freeBlocksUncommited);
         _freeBlocksUncommited.Clear();
-        //Debug.Log("Block count: " + transform.childCount);
+        //Debug.Log("Block count: " + transform.childCount);*/
     }
 }
