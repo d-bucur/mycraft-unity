@@ -49,8 +49,12 @@ public class WorldGenerator : MonoBehaviour {
                 lastX = worldPos.x;
             }
             BlockType blockType;
-            if (worldPos.y > groundHeight)
-                blockType = BlockType.Empty;
+            if (worldPos.y > groundHeight) {
+                if (worldPos.y < -5)
+                    blockType = BlockType.Water;
+                else
+                    blockType = BlockType.Empty;
+            }
             else {
                 if (worldPos.y > 10)
                     blockType = BlockType.Snow;
