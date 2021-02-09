@@ -50,7 +50,7 @@ public class WorldGenerator : MonoBehaviour {
             }
             BlockType blockType;
             if (worldPos.y > groundHeight) {
-                if (worldPos.y < -5)
+                if (worldPos.y < - 15)
                     blockType = BlockType.Water;
                 else
                     blockType = BlockType.Empty;
@@ -63,6 +63,9 @@ public class WorldGenerator : MonoBehaviour {
                 else
                     blockType = BlockType.Grass;
             }
+            // TODO temp debug
+            // if (worldPos.y == 30)
+            //     blockType = BlockType.Grass;
             sector.AddBlock(blockPos, blockType);
         }
         sector.FillMesh();

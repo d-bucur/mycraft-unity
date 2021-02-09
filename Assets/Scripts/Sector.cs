@@ -8,10 +8,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public Vector2Int offset;
     
     private readonly int _meshCount = 2;
+    private MeshHelper[] _meshHelpers = new MeshHelper[2];
     
-    private ResizableArray<Vector3> vertices;
-    private ResizableArray<Vector2> uvs;
-    private ResizableArray<int>[] triangles;
     private BlockType[] _blocks;
     
     private static int _xSize, _zSize;
@@ -41,11 +39,9 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public void Init() {
         _blocks = new BlockType[sectorSize * sectorSize * sectorSizeHeight];
         var predictedVertices = _xSize * sectorSize / 2;
-        vertices = new ResizableArray<Vector3>(predictedVertices);
-        uvs = new ResizableArray<Vector2>(predictedVertices);
-        triangles = new ResizableArray<int>[_meshCount];
-        for (int i = 0; i < _meshCount; i++)
-            triangles[i] = new ResizableArray<int>((int)(predictedVertices * 1.5f));
+        for (int i = 0; i < _meshHelpers.Length; i++) {
+            _meshHelpers[i] = new MeshHelper(predictedVertices);
+        }
     }
 
     public void AddBlock(in Vector3Int pos, BlockType blockType) {
@@ -95,23 +91,16 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     }
 
     public void FillMesh() {
-        foreach (var triangle in triangles) {
-            triangle.Clear();
-        }
-        vertices.Clear();
-        uvs.Clear();
+        foreach (var helper in _meshHelpers)
+            helper.Clear();
         
         SweepMeshFaces();
 
-        var mesh = new Mesh();
-        mesh.subMeshCount = 2;
-        mesh.SetVertices(vertices.GetArrayRef(), 0, vertices.Count);
-        for (int i = 0; i < triangles.Length; i++)
-            mesh.SetTriangles(triangles[i].GetArrayRef(), 0, triangles[i].Count, i);
-        mesh.SetUVs(0, uvs.GetArrayRef(), 0, uvs.Count);
-        mesh.RecalculateNormals();
-        GetComponent<MeshFilter>().mesh = mesh;
-        GetComponent<MeshCollider>().sharedMesh = mesh;
+        var solidsMesh = _meshHelpers[0].MakeMesh();
+        GetComponent<MeshFilter>().mesh = solidsMesh;
+        GetComponent<MeshCollider>().sharedMesh = solidsMesh;
+        var transparentsMesh = _meshHelpers[1].MakeMesh();
+        transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
         // Debug.Log(String.Format("Generated sector {2} with {0} vertices, {1} triangles",
         //     vertices.Count, triangles.Count / 3, offset));
     }
@@ -123,8 +112,11 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             if (previousType != null) {
                 var prevGroup = Block.Groups[previousType.Value];
                 var currentGroup = Block.Groups[currentType];
-                if (currentType == BlockType.Empty && previousType == BlockType.Water)
+                if (currentType == BlockType.Empty && previousType == BlockType.Water) {
                     AddFace(lastPosition, currentDirection, previousType.Value, 1);
+                    AddFace(currentPos, previousDirection, previousType.Value, 1);
+                }
+
                 if (currentGroup != prevGroup) {
                     if (currentGroup == 1)
                         AddFace(lastPosition, currentDirection, previousType.Value, 0);
@@ -184,7 +176,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
                 AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos, meshId);
                 break;
             case Direction.DOWN:
-                AddFaceInternal(_rdb, _rdf, _ldf, _ldb, center, 2, uvPos, meshId);
+                // TODO uvs not working
+                AddFaceInternal(_rdf, _ldf, _ldb, _rdb, center, 2, uvPos, meshId);
                 break;
             case Direction.RIGHT:
                 AddFaceInternal(_rdb, _rub, _ruf, _rdf, center, 1, uvPos, meshId);
@@ -205,6 +198,10 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     private const float _uvDelta = 1f / _uvMapSize;
     private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center, int uvX,
         int uvY, int meshId) {
+        var vertices = _meshHelpers[meshId].vertices;
+        var uvs = _meshHelpers[meshId].uvs;
+        var triangles = _meshHelpers[meshId].triangles;
+        
         var i = vertices.Count;
         vertices.Add(center + a);
         vertices.Add(center + b);
@@ -216,12 +213,12 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta + _uvDelta));
         uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta));
         
-        triangles[meshId].Add(i);
-        triangles[meshId].Add(i+1);
-        triangles[meshId].Add(i+3);
+        triangles.Add(i);
+        triangles.Add(i+1);
+        triangles.Add(i+3);
         
-        triangles[meshId].Add(i+1);
-        triangles[meshId].Add(i+2);
-        triangles[meshId].Add(i+3);
+        triangles.Add(i+1);
+        triangles.Add(i+2);
+        triangles.Add(i+3);
     }
 }
