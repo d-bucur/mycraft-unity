@@ -14,7 +14,7 @@ public class WorldGenerator : MonoBehaviour {
     public int sandTreshold;
     
     private static WorldGenerator _instance;
-    private Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
+    public Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
     private Queue<Tuple<Vector2Int, Vector2Int>> _sectorsToUpdate = new Queue<Tuple<Vector2Int, Vector2Int>>();
 
     public static WorldGenerator Instance {
@@ -35,6 +35,9 @@ public class WorldGenerator : MonoBehaviour {
                 GenerateSector(sector, new Vector2Int(x, y));
                 _sectors.Add(sector.offset, sector);
             }
+        }
+        foreach (var sector in _sectors) {
+            sector.Value.FillMesh();
         }
     }
 
@@ -57,7 +60,7 @@ public class WorldGenerator : MonoBehaviour {
             //     blockType = BlockType.Grass;
             sector.AddBlock(blockPos, blockType);
         }
-        sector.FillMesh();
+        // sector.FillMesh();
     }
 
     private BlockType GetBlockType(Vector3Int worldPos, int groundHeight) {
@@ -120,6 +123,8 @@ public class WorldGenerator : MonoBehaviour {
             //UnloadSector(sector);
             _sectors.Remove(removePos);
             GenerateSector(sector, addPos);
+            // TODO prepare neighboring sectors 
+            sector.FillMesh();
             _sectors.Add(addPos, sector);
 
             var deltaTime = Time.realtimeSinceStartup - startTime;

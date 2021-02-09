@@ -1,11 +1,11 @@
-using System.Collections.Generic;
+using System;
 
 public enum BlockType {
     Water = 0,
     Sand = 1,
     Snow = 2,
     Grass = 3,
-    Empty = 4
+    Empty = 4,
 }
 
 public enum BlockGroup {
@@ -14,11 +14,14 @@ public enum BlockGroup {
 }
 
 public struct Block {
-    public static readonly Dictionary<BlockType, BlockGroup> Groups = new Dictionary<BlockType, BlockGroup> {
-        {BlockType.Empty, BlockGroup.Transparent},
-        {BlockType.Water, BlockGroup.Transparent},
-        {BlockType.Snow, BlockGroup.Solid},
-        {BlockType.Sand, BlockGroup.Solid},
-        {BlockType.Grass, BlockGroup.Solid},
-    };
+    public static BlockGroup GetGroup(BlockType type) {
+        switch (type) {
+            case BlockType.Empty: return BlockGroup.Transparent;
+            case BlockType.Water: return BlockGroup.Transparent;
+            case BlockType.Snow: return BlockGroup.Solid;
+            case BlockType.Sand: return BlockGroup.Solid;
+            case BlockType.Grass: return BlockGroup.Solid;
+        }
+        throw new ArgumentException("Unknown block type");
+    }
 }

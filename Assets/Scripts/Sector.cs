@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -7,10 +8,10 @@ using UnityEngine;
 public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public Vector2Int offset;
     
-    private readonly int _meshCount = 2;
     private MeshHelper[] _meshHelpers = new MeshHelper[2];
     
     private BlockType[] _blocks;
+    private static Dictionary<Vector2Int, Sector> _sectors;
     
     private static int _xSize, _zSize;
     private static int sectorSizeHeight;
@@ -34,6 +35,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         Sector.sectorSize = sectorSize;
         Sector.sectorSizeHeight = _zSize = sectorSizeHeight;
         _xSize = sectorSizeHeight * sectorSize;
+        _sectors = WorldGenerator.Instance._sectors;
     }
 
     public void Init() {
@@ -75,6 +77,42 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         return _blocks[GetId(pos)];
     }
 
+    /** Moves through sector map if position is out of current bounds */
+    private BlockType SafeGetBlock(Vector3Int pos) {
+        Vector2Int sectorPos = offset;
+        var differentSector = false;
+        if (pos.x < 0) {
+            sectorPos.x--;
+            pos.x += sectorSize;
+            differentSector = true;
+        } 
+        else if (pos.x >= sectorSize) {
+            sectorPos.x++;
+            pos.x -= sectorSize;
+            differentSector = true;
+        }
+        if (pos.z < 0) {
+            sectorPos.y--;
+            pos.z += sectorSize;
+            differentSector = true;
+        }
+        else if (pos.z >= sectorSize) {
+            sectorPos.y++;
+            pos.z -= sectorSize;
+            differentSector = true;
+        }
+
+        if (!differentSector)
+            return GetBlock(pos);
+        
+        if (!_sectors.ContainsKey(sectorPos)) {
+            // TODO should not happen. Remove when external sectors are created
+            // Debug.LogError(String.Format("Trying to read pos {0} of nonexistent sector {1}", pos, sectorPos));
+            return BlockType.Empty;
+        }
+        return _sectors[sectorPos].GetBlock(pos);
+    }
+
     public bool TryGetValue(Vector3Int pos, out BlockType value) {
         // TODO remove?
         value = BlockType.Empty;
@@ -108,10 +146,10 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     private void SweepMeshFaces() {
         BlockType? ConstructFace(in Vector3Int currentPos, BlockType? previousType, in Vector3Int lastPosition,
             Direction currentDirection, Direction previousDirection) {
-            var currentType = GetBlock(currentPos);
+            var currentType = SafeGetBlock(currentPos);
             if (previousType != null) {
-                var prevGroup = Block.Groups[previousType.Value];
-                var currentGroup = Block.Groups[currentType];
+                var prevGroup = Block.GetGroup(previousType.Value);
+                var currentGroup = Block.GetGroup(currentType);
                 if (currentType == BlockType.Empty && previousType == BlockType.Water) {
                     // draw water surface
                     AddFace(lastPosition, currentDirection, previousType.Value, 1);
@@ -147,7 +185,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         // Sweep forward
         for (var x = 0; x < sectorSize; x++) {
             for (var y = 0; y < sectorSizeHeight; y++) {
-                for (var z = 0; z < sectorSize; z++) {
+                for (var z = -1; z <= sectorSize; z++) {
                     var currentPos = new Vector3Int(x, y, z);
                     lastType = ConstructFace(currentPos, lastType, lastPos, Direction.FORWARD, Direction.BACK);
                     lastPos = currentPos;
@@ -159,7 +197,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         // Sweep right
         for (var y = 0; y < sectorSizeHeight; y++) {
             for (var z = 0; z < sectorSize; z++) {
-                for (var x = 0; x < sectorSize; x++) {
+                for (var x = -1; x <= sectorSize; x++) {
                     var currentPos = new Vector3Int(x, y, z);
                     lastType = ConstructFace(currentPos, lastType, lastPos, Direction.RIGHT, Direction.LEFT);
                     lastPos = currentPos;
