@@ -170,6 +170,9 @@ MonoBehaviour:
     offset: {x: 0, y: 0}
   regenTimeBudget: 0.01
   sectorTemplate: {fileID: 569589763807964434, guid: 4d04bae28f2478545ac742228b7fd763, type: 3}
+  waterTreshold: -10
+  snowTreshold: 20
+  sandTreshold: -5
 --- !u!4 &196098818
 Transform:
   m_ObjectHideFlags: 0

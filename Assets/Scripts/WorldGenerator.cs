@@ -9,6 +9,9 @@ public class WorldGenerator : MonoBehaviour {
     public List<NoiseMap> noiseMaps;
     public float regenTimeBudget;
     public Sector sectorTemplate;
+    public int waterTreshold;
+    public int snowTreshold;
+    public int sandTreshold;
     
     private static WorldGenerator _instance;
     private Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
@@ -48,27 +51,33 @@ public class WorldGenerator : MonoBehaviour {
                 lastZ = worldPos.z;
                 lastX = worldPos.x;
             }
-            BlockType blockType;
-            if (worldPos.y > groundHeight) {
-                if (worldPos.y < - 15)
-                    blockType = BlockType.Water;
-                else
-                    blockType = BlockType.Empty;
-            }
-            else {
-                if (worldPos.y > 10)
-                    blockType = BlockType.Snow;
-                else if (worldPos.y < -10)
-                    blockType = BlockType.Sand;
-                else
-                    blockType = BlockType.Grass;
-            }
+            BlockType blockType = GetBlockType(worldPos, groundHeight);
             // TODO temp debug
             // if (worldPos.y == 30)
             //     blockType = BlockType.Grass;
             sector.AddBlock(blockPos, blockType);
         }
         sector.FillMesh();
+    }
+
+    private BlockType GetBlockType(Vector3Int worldPos, int groundHeight) {
+        BlockType blockType;
+        if (worldPos.y > groundHeight) {
+            if (worldPos.y < waterTreshold)
+                blockType = BlockType.Water;
+            else
+                blockType = BlockType.Empty;
+        }
+        else {
+            if (worldPos.y > snowTreshold)
+                blockType = BlockType.Snow;
+            else if (worldPos.y < sandTreshold)
+                blockType = BlockType.Sand;
+            else
+                blockType = BlockType.Grass;
+        }
+
+        return blockType;
     }
 
     private float SampleMaps(in Vector2Int pos) {

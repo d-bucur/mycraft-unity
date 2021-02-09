@@ -8,13 +8,17 @@ public enum BlockType {
     Empty = 4
 }
 
-// TODO add enum for group
+public enum BlockGroup {
+    Solid = 0,
+    Transparent = 1,
+}
+
 public struct Block {
-    public static readonly Dictionary<BlockType, int> Groups = new Dictionary<BlockType, int> {
-        {BlockType.Empty, 1},
-        {BlockType.Water, 1},
-        {BlockType.Snow, 0},
-        {BlockType.Sand, 0},
-        {BlockType.Grass, 0},
+    public static readonly Dictionary<BlockType, BlockGroup> Groups = new Dictionary<BlockType, BlockGroup> {
+        {BlockType.Empty, BlockGroup.Transparent},
+        {BlockType.Water, BlockGroup.Transparent},
+        {BlockType.Snow, BlockGroup.Solid},
+        {BlockType.Sand, BlockGroup.Solid},
+        {BlockType.Grass, BlockGroup.Solid},
     };
 }

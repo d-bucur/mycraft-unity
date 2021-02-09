@@ -113,12 +113,13 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
                 var prevGroup = Block.Groups[previousType.Value];
                 var currentGroup = Block.Groups[currentType];
                 if (currentType == BlockType.Empty && previousType == BlockType.Water) {
+                    // draw water surface
                     AddFace(lastPosition, currentDirection, previousType.Value, 1);
                     AddFace(currentPos, previousDirection, previousType.Value, 1);
                 }
-
                 if (currentGroup != prevGroup) {
-                    if (currentGroup == 1)
+                    // draw solid surface
+                    if (currentGroup == BlockGroup.Transparent)
                         AddFace(lastPosition, currentDirection, previousType.Value, 0);
                     else
                         AddFace(currentPos, previousDirection, currentType, 0);
