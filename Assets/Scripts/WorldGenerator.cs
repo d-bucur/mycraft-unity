@@ -8,9 +8,7 @@ public class WorldGenerator : MonoBehaviour {
     public int sectorSizeHeight;
     public List<NoiseMap> noiseMaps;
     public float regenTimeBudget;
-    public GameObject blockTemplate;
     public Sector sectorTemplate;
-    public SectorGenerator sectorGenerator;
     
     private static WorldGenerator _instance;
     private Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
@@ -37,7 +35,7 @@ public class WorldGenerator : MonoBehaviour {
         }
     }
 
-    private void GenerateSector(Sector sector, Vector2Int pos) {
+    private void GenerateSector(Sector sector, in Vector2Int pos) {
         sector.offset = pos;
         sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
 
@@ -53,14 +51,10 @@ public class WorldGenerator : MonoBehaviour {
             var blockType = (worldPos.y <= groundHeight) ? BlockType.Default : BlockType.Empty;
             sector.AddBlock(blockPos, blockType);
         }
-        sectorGenerator.FillSectorMesh(sector);
+        sector.FillMesh();
     }
 
-    private void UnloadSector(Sector sector) {
-        // Not needed at the moment
-    }
-
-    private float SampleMaps(Vector2Int pos) {
+    private float SampleMaps(in Vector2Int pos) {
         var res = 0.0f;
         for (var i = 0; i < noiseMaps.Count; i++)
             res += noiseMaps[i].Sample(pos);
@@ -97,10 +91,8 @@ public class WorldGenerator : MonoBehaviour {
             );
             
             var sector = _sectors[removePos];
-            UnloadSector(sector);
+            //UnloadSector(sector);
             _sectors.Remove(removePos);
-            
-            sector.offset = addPos;
             GenerateSector(sector, addPos);
             _sectors.Add(addPos, sector);
 
