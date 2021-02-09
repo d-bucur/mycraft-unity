@@ -110,19 +110,19 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     }
 
     private void SweepMeshFaces() {
-        BlockType? ConstructFace(in Vector3Int currentPos, BlockType? blockType, in Vector3Int lastPosition,
+        BlockType? ConstructFace(in Vector3Int currentPos, BlockType? previousType, in Vector3Int lastPosition,
             Direction currentDirection, Direction previousDirection) {
             var currentType = GetBlock(currentPos);
-            if (blockType != null) {
-                if (currentType != blockType) {
+            if (previousType != null) {
+                if (currentType != previousType) {
                     if (currentType == BlockType.Empty)
-                        AddFace(lastPosition, currentDirection);
+                        AddFace(lastPosition, currentDirection, previousType.Value);
                     else
-                        AddFace(currentPos, previousDirection);
+                        AddFace(currentPos, previousDirection, currentType);
                 }
             }
-            blockType = currentType;
-            return blockType;
+            previousType = currentType;
+            return previousType;
         }
 
         BlockType? lastType = null;
@@ -165,31 +165,32 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         }
     }
 
-    private void AddFace(in Vector3 center, Direction dir) {
+    private void AddFace(in Vector3 center, Direction dir, BlockType type) {
+        var uvPos = (int)type;
         // TODO inline method?
         switch (dir) {
             case Direction.UP:
-                AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, 1);
+                AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos);
                 break;
             case Direction.DOWN:
-                AddFaceInternal(_rdb, _rdf, _ldf, _ldb, center, 1, 1);
+                AddFaceInternal(_rdb, _rdf, _ldf, _ldb, center, 2, uvPos);
                 break;
             case Direction.RIGHT:
-                AddFaceInternal(_rdb, _rub, _ruf, _rdf, center, 1, 0);
+                AddFaceInternal(_rdb, _rub, _ruf, _rdf, center, 1, uvPos);
                 break;
             case Direction.LEFT:
-                AddFaceInternal(_ldf, _luf, _lub, _ldb, center, 1, 0);
+                AddFaceInternal(_ldf, _luf, _lub, _ldb, center, 1, uvPos);
                 break;
             case Direction.FORWARD:
-                AddFaceInternal(_rdf, _ruf, _luf, _ldf, center, 1, 0);
+                AddFaceInternal(_rdf, _ruf, _luf, _ldf, center, 1, uvPos);
                 break;
             case Direction.BACK:
-                AddFaceInternal(_ldb, _lub, _rub, _rdb, center, 1, 0);
+                AddFaceInternal(_ldb, _lub, _rub, _rdb, center, 1, uvPos);
                 break;
         }
     }
 
-    private const int _uvMapSize = 2;
+    private const int _uvMapSize = 4;
     private const float _uvDelta = 1f / _uvMapSize;
     private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center, int uvX, int uvY) {
         var i = vertices.Count;

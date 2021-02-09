@@ -48,7 +48,17 @@ public class WorldGenerator : MonoBehaviour {
                 lastZ = worldPos.z;
                 lastX = worldPos.x;
             }
-            var blockType = (worldPos.y <= groundHeight) ? BlockType.Default : BlockType.Empty;
+            BlockType blockType;
+            if (worldPos.y > groundHeight)
+                blockType = BlockType.Empty;
+            else {
+                if (worldPos.y > 10)
+                    blockType = BlockType.Snow;
+                else if (worldPos.y < -10)
+                    blockType = BlockType.Sand;
+                else
+                    blockType = BlockType.Grass;
+            }
             sector.AddBlock(blockPos, blockType);
         }
         sector.FillMesh();
