@@ -4,6 +4,7 @@ using UnityEngine;
 
 [CreateAssetMenu(menuName = "Scriptable Objects/SectorGenerator")]
 public class SectorGenerator : ScriptableObject {
+    // TODO move all logic inside Sector
     private static float _s = 0.5f;
     private static Vector3 _rub = new Vector3(_s, _s, -_s);
     private static Vector3 _lub = new Vector3(-_s, _s, -_s);
@@ -19,30 +20,37 @@ public class SectorGenerator : ScriptableObject {
     };
 
     public void FillSectorMesh(Sector sector) {
-        var vertices = new List<Vector3>();
-        var triangles = new List<int>();
+        sector.triangles.Clear();
+        sector.vertices.Clear();
 
+        int filledBlocks = 0;
         // Debug.Log("Blocks in sector analyzed: " + sector.blocks.Count);
-        foreach (var block in sector.blocks) {
-            if (block.Value == BlockType.Empty) continue;
-            var pos = block.Key;
+        foreach (var blockPos in sector) {
+            if (sector.GetBlock(blockPos) == BlockType.Empty) continue;
+            filledBlocks++;
             for (var i = 0; i < _neighbors.Length; i++) {
-                var npos = pos + _neighbors[i];
-                if (sector.blocks.TryGetValue(npos, out var neighborType) && neighborType != BlockType.Empty)
+                var npos = blockPos + _neighbors[i];
+                // TODO handle neighbors that fall in different sectors properly
+                // TODO using only one sweep per axis will reduce cycles by half
+                if (sector.TryGetValue(npos, out var neighborType) && neighborType != BlockType.Empty)
                     continue;
-                AddFace(vertices, triangles, pos, _neighbors[i]);
+                // TODO add offset to make pivot in center
+                AddFace(sector.vertices, sector.triangles, blockPos, _neighbors[i]);
             }
         }
 
-        var mesh = new Mesh {vertices = vertices.ToArray(), triangles = triangles.ToArray()};
+        var mesh = new Mesh();
+        mesh.SetVertices(sector.vertices.GetArrayRef(), 0, sector.vertices.Count);
+        mesh.SetTriangles(sector.triangles.GetArrayRef(), 0, sector.triangles.Count, 0);
         mesh.RecalculateNormals();
         sector.GetComponent<MeshFilter>().mesh = mesh;
         sector.GetComponent<MeshCollider>().sharedMesh = mesh;
-        Debug.Log(String.Format("Generated sector {2} with {0} vertices and {1} triangles", vertices.Count, triangles.Count / 3, sector.offset));
+        Debug.Log(String.Format("Generated sector {2} with {0} vertices and {1} triangles and filled {3} blocks",
+            sector.vertices.Count, sector.triangles.Count / 3, sector.offset, filledBlocks));
     }
     
-    private void AddFace(List<Vector3> vertices, List<int> triangles, Vector3 center, Vector3Int dir) {
-        // TODO should inline method
+    private void AddFace(ResizableArray<Vector3> vertices, ResizableArray<int> triangles, Vector3 center, Vector3Int dir) {
+        // TODO should inline method and use simpler comparison
         if (dir == Vector3Int.up)
             AddFaceInternal(vertices, triangles, _rub, _lub, _luf, _ruf, center);
         else if (dir == Vector3Int.down)
@@ -57,7 +65,7 @@ public class SectorGenerator : ScriptableObject {
             AddFaceInternal(vertices, triangles, _rub, _rdb, _ldb, _lub, center);
     }
 
-    private static void AddFaceInternal(List<Vector3> vertices, List<int> triangles,
+    private static void AddFaceInternal(ResizableArray<Vector3> vertices, ResizableArray<int> triangles,
         Vector3 a, Vector3 b, Vector3 c, Vector3 d, Vector3 center
     ) {
         var i = vertices.Count;
