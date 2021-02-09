@@ -9,6 +9,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public Vector2Int offset;
     
     private ResizableArray<Vector3> vertices;
+    private ResizableArray<Vector2> uvs;
     private ResizableArray<int> triangles;
     private BlockType[] _blocks;
     
@@ -40,6 +41,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         _blocks = new BlockType[sectorSize * sectorSize * sectorSizeHeight];
         var predictedVertices = _xSize * sectorSize / 2;
         vertices = new ResizableArray<Vector3>(predictedVertices);
+        uvs = new ResizableArray<Vector2>(predictedVertices);
         triangles = new ResizableArray<int>((int)(predictedVertices * 1.5f));
     }
 
@@ -92,12 +94,14 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public void FillMesh() {
         triangles.Clear();
         vertices.Clear();
+        uvs.Clear();
         
         SweepMeshFaces();
 
         var mesh = new Mesh();
         mesh.SetVertices(vertices.GetArrayRef(), 0, vertices.Count);
         mesh.SetTriangles(triangles.GetArrayRef(), 0, triangles.Count, 0);
+        mesh.SetUVs(0, uvs.GetArrayRef(), 0, uvs.Count);
         mesh.RecalculateNormals();
         GetComponent<MeshFilter>().mesh = mesh;
         GetComponent<MeshCollider>().sharedMesh = mesh;
@@ -165,32 +169,39 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         // TODO inline method?
         switch (dir) {
             case Direction.UP:
-                AddFaceInternal(_rub, _lub, _luf, _ruf, center);
+                AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, 1);
                 break;
             case Direction.DOWN:
-                AddFaceInternal(_rdb, _rdf, _ldf, _ldb, center);
+                AddFaceInternal(_rdb, _rdf, _ldf, _ldb, center, 1, 1);
                 break;
             case Direction.RIGHT:
-                AddFaceInternal(_rub, _ruf, _rdf, _rdb, center);
+                AddFaceInternal(_rdb, _rub, _ruf, _rdf, center, 1, 0);
                 break;
             case Direction.LEFT:
-                AddFaceInternal(_lub, _ldb, _ldf, _luf, center);
+                AddFaceInternal(_ldf, _luf, _lub, _ldb, center, 1, 0);
                 break;
             case Direction.FORWARD:
-                AddFaceInternal(_ruf, _luf, _ldf, _rdf, center);
+                AddFaceInternal(_rdf, _ruf, _luf, _ldf, center, 1, 0);
                 break;
             case Direction.BACK:
-                AddFaceInternal(_rub, _rdb, _ldb, _lub, center);
+                AddFaceInternal(_ldb, _lub, _rub, _rdb, center, 1, 0);
                 break;
         }
     }
 
-    private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center) {
+    private const int _uvMapSize = 2;
+    private const float _uvDelta = 1f / _uvMapSize;
+    private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center, int uvX, int uvY) {
         var i = vertices.Count;
         vertices.Add(center + a);
         vertices.Add(center + b);
         vertices.Add(center + c);
         vertices.Add(center + d);
+        
+        uvs.Add(new Vector2(uvX * _uvDelta, uvY * _uvDelta));
+        uvs.Add(new Vector2(uvX * _uvDelta, uvY * _uvDelta + _uvDelta));
+        uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta + _uvDelta));
+        uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta));
         
         triangles.Add(i);
         triangles.Add(i+1);
