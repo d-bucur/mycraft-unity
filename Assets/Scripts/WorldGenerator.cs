@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class WorldGenerator : MonoBehaviour {
     public int viewRange;
@@ -12,6 +13,14 @@ public class WorldGenerator : MonoBehaviour {
     public int waterTreshold;
     public int snowTreshold;
     public int sandTreshold;
+    public RandomizationType randomizationType; 
+    public int seed;
+    
+    public enum RandomizationType {
+        NoRandom,
+        Random,
+        Seeded,
+    }
     
     private static WorldGenerator _instance;
     public Dictionary<Vector2Int, Sector> _sectors = new Dictionary<Vector2Int, Sector>();
@@ -24,12 +33,25 @@ public class WorldGenerator : MonoBehaviour {
     private void Awake() {
         _instance = this;
         Sector.SetSizes(sectorSize, sectorSizeHeight);
+        GenerateRandomness();
         GenerateInitialMap();
+        Random.InitState(seed);
+    }
+
+    private void GenerateRandomness() { 
+        if (randomizationType == RandomizationType.NoRandom) 
+            return;
+        if (randomizationType == RandomizationType.Seeded) 
+            Random.InitState(seed); 
+        else if (randomizationType == RandomizationType.Random) 
+            Random.InitState((int)DateTimeOffset.Now.ToUnixTimeSeconds()); 
+        foreach (var t in noiseMaps) 
+            t.offset = new Vector2(Random.Range(-1000.0f, 1000.0f), Random.Range(-1000.0f, 1000.0f));
     }
 
     private void Start() {
         // TODO only in editor
-        Application.targetFrameRate = 120;
+        Application.targetFrameRate = 60;
     }
 
     private void GenerateInitialMap() {

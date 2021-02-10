@@ -152,8 +152,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5227cc32ff04d342a1071010bdc0c07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  viewRange: 4
-  sectorSize: 30
+  viewRange: 5
+  sectorSize: 20
   sectorSizeHeight: 100
   noiseMaps:
   - amplitude: 30
@@ -173,6 +173,8 @@ MonoBehaviour:
   waterTreshold: -10
   snowTreshold: 20
   sandTreshold: -5
+  randomizationType: 2
+  seed: 42
 --- !u!4 &196098818
 Transform:
   m_ObjectHideFlags: 0
@@ -620,7 +622,7 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 1
   volumeAnchorOverride: {fileID: 0}
-  antialiasing: 0
+  antialiasing: 2
   SMAAQuality: 2
   dithering: 0
   stopNaNs: 0
@@ -916,9 +918,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6579b8ce0f05d054b8697eda7b818ea0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkingSpeed: 15
-  runningSpeed: 60
-  jumpSpeed: 12
+  walkingSpeed: 10
+  fastFactor: 3
+  jumpSpeed: 9
   gravity: 20
   playerCamera: {fileID: 963194227}
   lookSpeed: 2
@@ -935,7 +937,7 @@ CharacterController:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Height: 2
+  m_Height: 0.9
   m_Radius: 0.4
   m_SlopeLimit: 45
   m_StepOffset: 0.5

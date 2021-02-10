@@ -2,7 +2,7 @@ using System;
 using UnityEngine;
 
 [Serializable]
-public struct NoiseMap {
+public class NoiseMap {
     public float amplitude;
     public float frequency;
     public float power;
