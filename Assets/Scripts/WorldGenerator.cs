@@ -55,9 +55,6 @@ public class WorldGenerator : MonoBehaviour {
                 lastX = worldPos.x;
             }
             BlockType blockType = GetBlockType(worldPos, groundHeight);
-            // TODO temp debug
-            // if (worldPos.y == 30)
-            //     blockType = BlockType.Grass;
             sector.AddBlock(blockPos, blockType);
         }
         // sector.FillMesh();

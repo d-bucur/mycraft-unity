@@ -151,12 +151,12 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
                 var prevGroup = Block.GetGroup(previousType.Value);
                 var currentGroup = Block.GetGroup(currentType);
                 if (currentType == BlockType.Empty && previousType == BlockType.Water) {
-                    // draw water surface
+                    // draw water surface from both sides
                     AddFace(lastPosition, currentDirection, previousType.Value, 1);
                     AddFace(currentPos, previousDirection, previousType.Value, 1);
                 }
                 if (currentGroup != prevGroup) {
-                    // draw solid surface
+                    // draw solid surface from solid into empty
                     if (currentGroup == BlockGroup.Transparent)
                         AddFace(lastPosition, currentDirection, previousType.Value, 0);
                     else
@@ -215,7 +215,6 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
                 AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos, meshId);
                 break;
             case Direction.DOWN:
-                // TODO uvs not working
                 AddFaceInternal(_rdf, _ldf, _ldb, _rdb, center, 2, uvPos, meshId);
                 break;
             case Direction.RIGHT:
