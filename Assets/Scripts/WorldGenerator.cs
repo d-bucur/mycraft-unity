@@ -116,26 +116,30 @@ public class WorldGenerator : MonoBehaviour {
 
     public void OnPlayerMoved(Vector2Int oldPos, Vector2Int newPos) {
         Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
-         var delta = newPos - oldPos;
-         if (Mathf.Abs(delta.x) > 0) {
-             var removeX = oldPos.x - (int) Mathf.Sign(delta.x) * viewRange;
-             var addX = newPos.x + (int) Mathf.Sign(delta.x) * viewRange;
-             // alternate from the middle so the visual effect is more pleasing
-             for (var d = 0; d > -viewRange; d = (d>0)? -d : -d+1 ) {
-                 var y = oldPos.y + d;
-                 var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(removeX, y), new Vector2Int(addX, y)); 
-                 _sectorsToUpdate.Enqueue(t);
-             }
-         }
-         if (Mathf.Abs(delta.y) > 0) {
-             var removeY = oldPos.y - (int) Mathf.Sign(delta.y) * viewRange;
-             var addY = newPos.y + (int) Mathf.Sign(delta.y) * viewRange;
-             for (var d = 0; d > -viewRange; d = (d>0)? -d : -d+1 ) {
-                 var x = oldPos.x + d;
-                 var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(x, removeY), new Vector2Int(x, addY));
-                 _sectorsToUpdate.Enqueue(t);
-             }
-         }
+        var delta = newPos - oldPos;
+        if (Mathf.Abs(delta.x) > 0) {
+            var removeX = oldPos.x - (int) Mathf.Sign(delta.x) * viewRange;
+            var addX = newPos.x + (int) Mathf.Sign(delta.x) * viewRange;
+            // alternate from the middle so the visual effect is more pleasing
+            for (var d = 0; d <= viewRange; d = (d > 0) ? -d : -d + 1) {
+                var y = oldPos.y + d;
+                var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(removeX, y), new Vector2Int(addX, y));
+                _sectorsToUpdate.Enqueue(t);
+            }
+        }
+
+        if (Mathf.Abs(delta.y) > 0) {
+            var removeY = oldPos.y - (int) Mathf.Sign(delta.y) * viewRange;
+            var addY = newPos.y + (int) Mathf.Sign(delta.y) * viewRange;
+            for (var d = 0; d <= viewRange; d = (d > 0) ? -d : -d + 1) {
+                var x = oldPos.x + d;
+                var t = new Tuple<Vector2Int, Vector2Int>(new Vector2Int(x, removeY), new Vector2Int(x, addY));
+                _sectorsToUpdate.Enqueue(t);
+            }
+        }
+        
+        if (Mathf.Abs(delta.y) > 1 || Mathf.Abs(delta.x) > 1)
+            Debug.LogError("Player delta is >1. Not handling this case");
     }
 
     private void LateUpdate() {
