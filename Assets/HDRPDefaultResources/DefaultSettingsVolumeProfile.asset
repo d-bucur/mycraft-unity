@@ -720,8 +720,8 @@ MonoBehaviour:
     m_Value: 0
     min: 0
   nearFocusEnd:
-    m_OverrideState: 0
-    m_Value: 4
+    m_OverrideState: 1
+    m_Value: 3.41
     min: 0
   farFocusStart:
     m_OverrideState: 1

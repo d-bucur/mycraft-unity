@@ -27,6 +27,11 @@ public class WorldGenerator : MonoBehaviour {
         GenerateInitialMap();
     }
 
+    private void Start() {
+        // TODO only in editor
+        Application.targetFrameRate = 120;
+    }
+
     private void GenerateInitialMap() {
         for (var x = -viewRange; x <= viewRange; x++) {
             for (var y = -viewRange; y <= viewRange; y++) {

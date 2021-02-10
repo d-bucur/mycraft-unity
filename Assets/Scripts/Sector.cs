@@ -14,8 +14,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     private static Dictionary<Vector2Int, Sector> _sectors;
     
     private static int _xSize, _zSize;
-    private static int sectorSizeHeight;
-    private static int sectorSize;
+    public static int sectorSizeHeight;
+    public static int sectorSize;
     
     private const float _s = 0.5f;
     private static readonly Vector3 _rub = new Vector3(_s, _s, -_s);
@@ -67,6 +67,15 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         pos.z += offset.y * sectorSize;
         pos.y -= sectorSizeHeight / 2;
         return pos;
+    }
+
+    /** Note that this does not ensure that the position given is actually inside this sector, this
+     * should be checked outside */
+    public Vector3Int WorldToInternalPos(Vector3Int pos) {
+        return new Vector3Int(
+            pos.x - offset.x * sectorSize,
+            pos.y,
+            pos.z - offset.y * sectorSize);
     }
 
     IEnumerator IEnumerable.GetEnumerator() {
