@@ -18,6 +18,30 @@ public class Builder : MonoBehaviour {
         if (!hasHit)
             return;
 
+        CheckConstruct(hit);
+        CheckDestroy(hit);
+    }
+
+    private void CheckDestroy(RaycastHit hit) {
+        var reboundPoint = hit.point + hit.normal * -0.5f;
+        var target = new Vector3Int(
+            Mathf.RoundToInt(reboundPoint.x),
+            Mathf.RoundToInt(reboundPoint.y),
+            Mathf.RoundToInt(reboundPoint.z)
+        );
+        if (!Input.GetKeyDown(KeyCode.Mouse1)) return;
+        var sectorPos = new Vector2Int(
+            Mathf.FloorToInt(target.x / (float) Sector.sectorSize),
+            Mathf.FloorToInt(target.z / (float) Sector.sectorSize));
+        var sector = WorldGenerator.Instance._sectors[sectorPos];
+        var gridPos = sector.WorldToInternalPos(target);
+        // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
+        sector.AddBlock(gridPos, BlockType.Empty);
+        // TODO should only add new meshes instead of redrawing the whole sector
+        sector.FillMesh();
+    }
+
+    private void CheckConstruct(RaycastHit hit) {
         var richochet = camera.forward * (-0.1f);
         var reboundPoint = hit.point + richochet;
         var target = new Vector3Int(
@@ -27,16 +51,15 @@ public class Builder : MonoBehaviour {
         );
         constructionBlock.transform.position = target;
 
-        if (Input.GetKeyDown(KeyCode.Mouse0)) {
-            var sectorPos = new Vector2Int(
-                Mathf.FloorToInt(target.x / (float)Sector.sectorSize), 
-                Mathf.FloorToInt(target.z / (float)Sector.sectorSize));
-            var sector = WorldGenerator.Instance._sectors[sectorPos];
-            var gridPos = sector.WorldToInternalPos(target);
-            // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
-            sector.AddBlock(gridPos, BlockType.Grass);
-            // TODO should only add new meshes instead of redrawing the whole sector
-            sector.FillMesh();
-        }
+        if (!Input.GetKeyDown(KeyCode.Mouse0)) return;
+        var sectorPos = new Vector2Int(
+            Mathf.FloorToInt(target.x / (float) Sector.sectorSize),
+            Mathf.FloorToInt(target.z / (float) Sector.sectorSize));
+        var sector = WorldGenerator.Instance._sectors[sectorPos];
+        var gridPos = sector.WorldToInternalPos(target);
+        // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
+        sector.AddBlock(gridPos, BlockType.Grass);
+        // TODO should only add new meshes instead of redrawing the whole sector
+        sector.FillMesh();
     }
 }
