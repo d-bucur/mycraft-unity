@@ -1,4 +1,3 @@
-using System;
 using UnityEngine;
 
 public class Builder : MonoBehaviour {
@@ -17,9 +16,9 @@ public class Builder : MonoBehaviour {
         var hasHit = Physics.Raycast(new Ray(transform.position, camera.forward), out hit, maxDistance, _layerMask);
         if (!hasHit)
             return;
-
         CheckConstruct(hit);
         CheckDestroy(hit);
+        // TODO bug: when changing blocks on the edge the sweep only updates faces in one sector instead of both
     }
 
     private void CheckDestroy(RaycastHit hit) {
@@ -33,12 +32,12 @@ public class Builder : MonoBehaviour {
         var sectorPos = new Vector2Int(
             Mathf.FloorToInt(target.x / (float) Sector.sectorSize),
             Mathf.FloorToInt(target.z / (float) Sector.sectorSize));
-        var sector = WorldGenerator.Instance._sectors[sectorPos];
+        var sector = WorldGenerator.Instance.GetSector(sectorPos);
         var gridPos = sector.WorldToInternalPos(target);
         // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
         sector.AddBlock(gridPos, BlockType.Empty);
         // TODO should only add new meshes instead of redrawing the whole sector
-        sector.FillMesh();
+        sector.GenerateMesh();
     }
 
     private void CheckConstruct(RaycastHit hit) {
@@ -55,11 +54,11 @@ public class Builder : MonoBehaviour {
         var sectorPos = new Vector2Int(
             Mathf.FloorToInt(target.x / (float) Sector.sectorSize),
             Mathf.FloorToInt(target.z / (float) Sector.sectorSize));
-        var sector = WorldGenerator.Instance._sectors[sectorPos];
+        var sector = WorldGenerator.Instance.GetSector(sectorPos);
         var gridPos = sector.WorldToInternalPos(target);
         // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
         sector.AddBlock(gridPos, BlockType.Grass);
         // TODO should only add new meshes instead of redrawing the whole sector
-        sector.FillMesh();
+        sector.GenerateMesh();
     }
 }

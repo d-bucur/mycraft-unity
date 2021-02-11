@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -11,7 +10,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     private MeshHelper[] _meshHelpers = new MeshHelper[2];
     
     private BlockType[] _blocks;
-    private static Dictionary<Vector2Int, Sector> _sectors;
+    private bool _isMeshGenerated = false;
+    private bool _isGridGenerated = false;
     
     private static int _xSize, _zSize;
     public static int sectorSizeHeight;
@@ -35,7 +35,6 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         Sector.sectorSize = sectorSize;
         Sector.sectorSizeHeight = _zSize = sectorSizeHeight;
         _xSize = sectorSizeHeight * sectorSize;
-        _sectors = WorldGenerator.Instance._sectors;
     }
 
     public void Init() {
@@ -49,6 +48,17 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public void AddBlock(in Vector3Int pos, BlockType blockType) {
         _blocks[GetId(pos)] = blockType;
     }
+
+    public void Clear() {
+        _isGridGenerated = false;
+        _isMeshGenerated = false;
+    }
+
+    public void SetGridGenerated() {
+        _isGridGenerated = true;
+    }
+    
+    public bool IsGridGenerated => _isGridGenerated;
 
     private int GetId(in Vector3Int pos) {
         return pos.x * _xSize + pos.z * _zSize + pos.y;
@@ -114,42 +124,20 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         if (!differentSector)
             return GetBlock(pos);
         
-        if (!_sectors.ContainsKey(sectorPos)) {
-            // TODO should not happen. Remove when external sectors are created
-            // Debug.LogError(String.Format("Trying to read pos {0} of nonexistent sector {1}", pos, sectorPos));
-            return BlockType.Empty;
-        }
-        return _sectors[sectorPos].GetBlock(pos);
+        return WorldGenerator.Instance.GetOrGenerateSector(sectorPos).GetBlock(pos);
     }
 
-    public bool TryGetValue(Vector3Int pos, out BlockType value) {
-        // TODO remove?
-        value = BlockType.Empty;
-        if (
-            pos.x < 0 || pos.x >= sectorSize
-            || pos.y < 0 || pos.y >= sectorSizeHeight
-            || pos.z < 0 || pos.z >= sectorSize
-        ) {
-            //Debug.Log("Requested invalid pos " + pos);
-            return false;
-        }
-        value = _blocks[GetId(pos)];
-        return true;
-    }
-
-    public void FillMesh() {
+    public void GenerateMesh() {
         foreach (var helper in _meshHelpers)
             helper.Clear();
-        
         SweepMeshFaces();
-
         var solidsMesh = _meshHelpers[0].MakeMesh();
         GetComponent<MeshFilter>().mesh = solidsMesh;
         GetComponent<MeshCollider>().sharedMesh = solidsMesh;
+        gameObject.SetActive(true);
         var transparentsMesh = _meshHelpers[1].MakeMesh();
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
-        // Debug.Log(String.Format("Generated sector {2} with {0} vertices, {1} triangles",
-        //     vertices.Count, triangles.Count / 3, offset));
+        _isMeshGenerated = true;
     }
 
     private void SweepMeshFaces() {
