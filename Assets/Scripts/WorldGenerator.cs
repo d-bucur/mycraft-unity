@@ -9,6 +9,7 @@ public class WorldGenerator : MonoBehaviour {
     public int sectorSize;
     public int sectorSizeHeight;
     public List<NoiseMap> noiseMaps;
+    public NoiseMap typeNoise;
     public float regenTimeBudget;
     public Sector sectorTemplate;
     public int waterTreshold;
@@ -72,21 +73,24 @@ public class WorldGenerator : MonoBehaviour {
 
         int lastX = Int32.MaxValue, lastZ = Int32.MaxValue;
         int groundHeight = 0;
+        int typeNoiseSample = 0;
         foreach (var blockPos in sector) {
             var worldPos = sector.InternalToWorldPos(blockPos);
             if (worldPos.z != lastZ || worldPos.x != lastX) {
-                groundHeight = (int) SampleMaps(new Vector2Int(worldPos.x, worldPos.z));
+                var gridPos = new Vector2Int(worldPos.x, worldPos.z);
+                groundHeight = (int) SampleMaps(gridPos);
+                typeNoiseSample = (int) typeNoise.Sample(gridPos);
                 lastZ = worldPos.z;
                 lastX = worldPos.x;
             }
-            BlockType blockType = GetBlockType(worldPos, groundHeight);
+            BlockType blockType = GetBlockType(worldPos, groundHeight, typeNoiseSample);
             sector.AddBlock(blockPos, blockType);
         }
         sector.FinishGeneratingGrid();
         _activeSectors.Add(pos, sector);
     }
 
-    private BlockType GetBlockType(Vector3Int worldPos, int groundHeight) {
+    private BlockType GetBlockType(Vector3Int worldPos, int groundHeight, int noise = 0) {
         BlockType blockType;
         if (worldPos.y > groundHeight) {
             if (worldPos.y < waterTreshold)
@@ -95,9 +99,9 @@ public class WorldGenerator : MonoBehaviour {
                 blockType = BlockType.Empty;
         }
         else {
-            if (worldPos.y > snowTreshold)
+            if (worldPos.y + noise > snowTreshold)
                 blockType = BlockType.Snow;
-            else if (worldPos.y < sandTreshold)
+            else if (worldPos.y + noise < sandTreshold)
                 blockType = BlockType.Sand;
             else
                 blockType = BlockType.Grass;

@@ -168,6 +168,11 @@ MonoBehaviour:
     frequency: 0.01
     power: 4
     offset: {x: 0, y: 0}
+  typeNoise:
+    amplitude: 30
+    frequency: 0.01
+    power: 1
+    offset: {x: 0, y: 0}
   regenTimeBudget: 0.01
   sectorTemplate: {fileID: 569589763807964434, guid: 4d04bae28f2478545ac742228b7fd763, type: 3}
   waterTreshold: -10
