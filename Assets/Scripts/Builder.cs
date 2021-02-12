@@ -37,6 +37,7 @@ public class Builder : MonoBehaviour {
         // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
         sector.AddBlock(gridPos, BlockType.Empty);
         // TODO should only add new meshes instead of redrawing the whole sector
+        sector.FinishGeneratingGrid();
         sector.GenerateMesh();
     }
 
@@ -59,6 +60,7 @@ public class Builder : MonoBehaviour {
         // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
         sector.AddBlock(gridPos, BlockType.Grass);
         // TODO should only add new meshes instead of redrawing the whole sector
+        sector.FinishGeneratingGrid();
         sector.GenerateMesh();
     }
 }

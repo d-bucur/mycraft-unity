@@ -152,9 +152,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5227cc32ff04d342a1071010bdc0c07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  viewRange: 8
-  sectorSize: 35
-  sectorSizeHeight: 100
+  viewRange: 20
+  sectorSize: 15
+  sectorSizeHeight: 150
   noiseMaps:
   - amplitude: 30
     frequency: 0.05
@@ -173,8 +173,9 @@ MonoBehaviour:
   waterTreshold: -10
   snowTreshold: 20
   sandTreshold: -5
-  randomizationType: 2
+  randomizationType: 1
   seed: 42
+  frameRateLimit: 60
 --- !u!4 &196098818
 Transform:
   m_ObjectHideFlags: 0
@@ -187,7 +188,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 2
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &613098374
 PrefabInstance:
@@ -198,7 +199,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 409815537577599624, guid: cd8021b580a98044192a7a15c0d4a413, type: 3}
       propertyPath: m_RootOrder
-      value: 4
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 409815537577599624, guid: cd8021b580a98044192a7a15c0d4a413, type: 3}
       propertyPath: m_LocalPosition.x
@@ -348,7 +349,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 0
+  m_RootOrder: 3
   m_LocalEulerAnglesHint: {x: 50, y: -30, z: 0}
 --- !u!114 &705507996
 MonoBehaviour:
@@ -884,7 +885,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 1
+  m_RootOrder: 4
   m_LocalEulerAnglesHint: {x: 50, y: 150, z: 0}
 --- !u!1 &2095145684
 GameObject:
@@ -957,7 +958,7 @@ Transform:
   m_Children:
   - {fileID: 963194228}
   m_Father: {fileID: 0}
-  m_RootOrder: 3
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2095145688
 MonoBehaviour:

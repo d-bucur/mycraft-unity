@@ -7,16 +7,18 @@ using UnityEngine;
 public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public Vector2Int offset;
     
-    private MeshHelper[] _meshHelpers = new MeshHelper[2];
+    private readonly MeshHelper[] _meshHelpers = new MeshHelper[2];
     
     private BlockType[] _blocks;
     private bool _isMeshGenerated = false;
     private bool _isGridGenerated = false;
-    
-    private static int _xSize, _zSize;
-    public static int sectorSizeHeight;
+    public bool IsGridGenerated => _isGridGenerated;
+
     public static int sectorSize;
-    
+    private static int sectorSizeHeight;
+    private static int _xSize, _zSize;
+    private const int _uvMapSize = 4;
+
     private const float _s = 0.5f;
     private static readonly Vector3 _rub = new Vector3(_s, _s, -_s);
     private static readonly Vector3 _lub = new Vector3(-_s, _s, -_s);
@@ -49,19 +51,12 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         _blocks[GetId(pos)] = blockType;
     }
 
-    public void Clear() {
-        _isGridGenerated = false;
-        _isMeshGenerated = false;
-    }
-
     public void FinishGeneratingGrid() {
         _isGridGenerated = true;
         _isMeshGenerated = false;
     }
-    
-    public bool IsGridGenerated => _isGridGenerated;
 
-    private int GetId(in Vector3Int pos) {
+    private static int GetId(in Vector3Int pos) {
         return pos.x * _xSize + pos.z * _zSize + pos.y;
     }
 
@@ -231,8 +226,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
                 break;
         }
     }
-
-    private const int _uvMapSize = 4;
+    
     private const float _uvDelta = 1f / _uvMapSize;
     private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center, int uvX,
         int uvY, int meshId) {
@@ -258,5 +252,9 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         triangles.Add(i+1);
         triangles.Add(i+2);
         triangles.Add(i+3);
+    }
+
+    public void Hide() {
+        gameObject.SetActive(false);
     }
 }

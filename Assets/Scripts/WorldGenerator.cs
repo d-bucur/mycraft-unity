@@ -16,24 +16,22 @@ public class WorldGenerator : MonoBehaviour {
     public int sandTreshold;
     public RandomizationType randomizationType; 
     public int seed;
+    public int frameRateLimit;
     
     public enum RandomizationType {
         NoRandom,
         Random,
         Seeded,
     }
-    
-    private static WorldGenerator _instance;
-    private Dictionary<Vector2Int, Sector> _activeSectors = new Dictionary<Vector2Int, Sector>();
-    private Queue<Sector> _sectorsReleased = new Queue<Sector>();
-    private Queue<Vector2Int> _sectorsToRender = new Queue<Vector2Int>();
 
-    public static WorldGenerator Instance {
-        get { return _instance; }
-    }
+    private readonly Dictionary<Vector2Int, Sector> _activeSectors = new Dictionary<Vector2Int, Sector>();
+    private readonly Queue<Sector> _sectorsReleased = new Queue<Sector>();
+    private readonly Queue<Vector2Int> _sectorsToRender = new Queue<Vector2Int>();
+
+    public static WorldGenerator Instance { get; private set; }
 
     private void Awake() {
-        _instance = this;
+        Instance = this;
         Sector.SetSizes(sectorSize, sectorSizeHeight);
         GenerateRandomness();
         GenerateInitialMap();
@@ -52,8 +50,8 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void Start() {
-        // TODO only in editor
-        Application.targetFrameRate = 60;
+        if (frameRateLimit > 0)
+            Application.targetFrameRate = frameRateLimit;
     }
 
     private void GenerateInitialMap() {
@@ -146,15 +144,11 @@ public class WorldGenerator : MonoBehaviour {
             Debug.LogError("Player delta is >1. Not handling this case");
     }
 
-    private void HideSector(Sector sector) {
-        sector.gameObject.SetActive(false);
-    }
-
     private void ReleaseSector(Vector2Int pos) {
         if (!_activeSectors.TryGetValue(pos, out var sector))
             return;
         _sectorsReleased.Enqueue(sector);
-        sector.gameObject.SetActive(false);
+        sector.Hide();
     }
 
     private void LateUpdate() {
