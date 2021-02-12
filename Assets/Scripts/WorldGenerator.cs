@@ -113,6 +113,11 @@ public class WorldGenerator : MonoBehaviour {
         return res;
     }
 
+    public Vector3 GetHeightAt(in Vector2Int pos) {
+        var y = SampleMaps(pos) + sectorSizeHeight / 2.0f;
+        return new Vector3(pos.x, y, pos.y);
+    }
+
     public void OnPlayerMoved(Vector2Int oldPos, Vector2Int newPos) {
         Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
         var delta = newPos - oldPos;
