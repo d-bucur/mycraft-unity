@@ -54,8 +54,9 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         _isMeshGenerated = false;
     }
 
-    public void SetGridGenerated() {
+    public void FinishGeneratingGrid() {
         _isGridGenerated = true;
+        _isMeshGenerated = false;
     }
     
     public bool IsGridGenerated => _isGridGenerated;
@@ -128,6 +129,9 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     }
 
     public void GenerateMesh() {
+        if (_isGridGenerated && _isMeshGenerated)
+            return;
+        
         foreach (var helper in _meshHelpers)
             helper.Clear();
         SweepMeshFaces();
@@ -206,7 +210,6 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
 
     private void AddFace(in Vector3 center, Direction dir, BlockType type, int meshId) {
         var uvPos = (int)type;
-        // TODO inline method?
         switch (dir) {
             case Direction.UP:
                 AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos, meshId);

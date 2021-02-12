@@ -84,7 +84,7 @@ public class WorldGenerator : MonoBehaviour {
             BlockType blockType = GetBlockType(worldPos, groundHeight);
             sector.AddBlock(blockPos, blockType);
         }
-        sector.SetGridGenerated();
+        sector.FinishGeneratingGrid();
         _activeSectors.Add(pos, sector);
     }
 
@@ -119,21 +119,23 @@ public class WorldGenerator : MonoBehaviour {
         Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
         var delta = newPos - oldPos;
         if (Mathf.Abs(delta.x) > 0) {
-            var removeX = oldPos.x - (int) Mathf.Sign(delta.x) * viewRange;
-            var addX = newPos.x + (int) Mathf.Sign(delta.x) * viewRange;
-            for (var d = -viewRange; d <= viewRange; d++) {
+            var xBorder = (int) Mathf.Sign(delta.x) * viewRange;
+            var addX = newPos.x + xBorder;
+            var removeX = oldPos.x - xBorder;
+            for (var d = -viewRange-1; d <= viewRange+1; d++) {
                 var y = oldPos.y + d;
-                ReleaseSector(_activeSectors[new Vector2Int(removeX-delta.x, y)]);
+                ReleaseSector(new Vector2Int(removeX-delta.x, y));
                 _sectorsToRender.Enqueue(new Vector2Int(addX, y));
             }
         }
 
         if (Mathf.Abs(delta.y) > 0) {
-            var removeY = oldPos.y - (int) Mathf.Sign(delta.y) * viewRange;
-            var addY = newPos.y + (int) Mathf.Sign(delta.y) * viewRange;
-            for (var d = -viewRange; d <= viewRange; d++) {
+            var yBorder = (int) Mathf.Sign(delta.y) * viewRange;
+            var addY = newPos.y + yBorder;
+            var removeY = oldPos.y - yBorder;
+            for (var d = -viewRange-1; d <= viewRange+1; d++) {
                 var x = oldPos.x + d;
-                ReleaseSector(_activeSectors[new Vector2Int(x, removeY-delta.y)]);
+                ReleaseSector(new Vector2Int(x, removeY-delta.y));
                 _sectorsToRender.Enqueue(new Vector2Int(x, addY));
             }
             // TODO hidden sectors on the side get left out of release
@@ -148,11 +150,11 @@ public class WorldGenerator : MonoBehaviour {
         sector.gameObject.SetActive(false);
     }
 
-    private void ReleaseSector(Sector sector) {
+    private void ReleaseSector(Vector2Int pos) {
+        if (!_activeSectors.TryGetValue(pos, out var sector))
+            return;
         _sectorsReleased.Enqueue(sector);
         sector.gameObject.SetActive(false);
-        // _activeSectors.Remove(sector.offset);
-        // sector.Clear();
     }
 
     private void LateUpdate() {
@@ -164,7 +166,7 @@ public class WorldGenerator : MonoBehaviour {
 
             var deltaTime = Time.realtimeSinceStartup - startTime;
             if (deltaTime > regenTimeBudget) {
-                Debug.Log("Skipping update to next frame due to budget restriction");
+                // Skip further rendering to next frame due to budget restriction
                 break;
             }
         }
