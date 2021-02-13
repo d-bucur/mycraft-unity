@@ -39,6 +39,9 @@ public class Builder : MonoBehaviour {
         constructionBlock.transform.position = target;
 
         if (!Input.GetKeyDown(KeyCode.Mouse0)) return;
+        var playerPos = Coordinates.RoundWorldPos(transform.position);
+        if (playerPos == target)
+            GetComponent<CharacterController>().Move(Vector3.up);
         WorldGenerator.Instance.ConstructBlock(target);
     }
 }
