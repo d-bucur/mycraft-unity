@@ -21,7 +21,7 @@ internal static class Coordinates {
             Mathf.FloorToInt(pos.z / (float) Sector.sectorSize));
         var internalPos = new Vector3Int(
             pos.x - sectorPos.x * Sector.sectorSize,
-            pos.y, // TODO cannot be. all types have different y axis
+            pos.y,
             pos.z - sectorPos.y * Sector.sectorSize
         );
         return (sectorPos, internalPos);

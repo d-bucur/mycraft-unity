@@ -165,7 +165,6 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             for (var z = 0; z < sectorSize; z++) {
                 for (var y = 0; y < sectorSizeHeight; y++) {
                     var currentPos = new Vector3Int(x, y, z);
-                    // TODO move if inside Construct face
                     if (hasLast)
                         last = ConstructFace(last, currentPos, Direction.UP, Direction.DOWN);
                     else {

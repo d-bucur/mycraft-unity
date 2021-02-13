@@ -8,13 +8,9 @@ public class WorldChanges : MonoBehaviour {
 
     public void Add(Vector3Int gridPos, BlockType type) {
         _diffs[gridPos] = type;
-        Debug.Log(String.Format("Added diff: {0}: {1}", gridPos, type));
     }
 
     public bool TryGetValue(in Vector3Int pos, out BlockType type) {
-        var found = _diffs.TryGetValue(pos, out type);
-        if (found)
-            Debug.Log(String.Format("Restored diff: {0}: {1}", pos, type));
-        return found;
+        return _diffs.TryGetValue(pos, out type);
     }
 }

@@ -221,7 +221,6 @@ public class WorldGenerator : MonoBehaviour {
         var blockType = planePos.y < waterTreshold ? BlockType.Water : BlockType.Empty;
         sector.AddBlock(internalPos, blockType);
         _worldChanges.Add(planePos, blockType);
-        Debug.Log("Removed to " + blockType);
         // TODO should only add new meshes instead of redrawing the whole sector
         sector.FinishGeneratingGrid();
         sector.GenerateMesh();
