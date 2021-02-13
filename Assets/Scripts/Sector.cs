@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -15,7 +16,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public bool IsGridGenerated => _isGridGenerated;
 
     public static int sectorSize;
-    private static int sectorSizeHeight;
+    public static int sectorSizeHeight;
     private static int _xSize, _zSize;
     private const int _uvMapSize = 4;
 
@@ -65,23 +66,6 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             for (var z = 0; z < sectorSize; z++)
                 for (var y = 0; y < sectorSizeHeight; y++)
                     yield return new Vector3Int(x, y, z);
-    }
-
-    // TODO add new type for internal pos
-    public Vector3Int InternalToWorldPos(Vector3Int pos) {
-        pos.x += offset.x * sectorSize;
-        pos.z += offset.y * sectorSize;
-        pos.y -= sectorSizeHeight / 2;
-        return pos;
-    }
-
-    /** Note that this does not ensure that the position given is actually inside this sector, this
-     * should be checked outside */
-    public Vector3Int WorldToInternalPos(Vector3Int pos) {
-        return new Vector3Int(
-            pos.x - offset.x * sectorSize,
-            pos.y,
-            pos.z - offset.y * sectorSize);
     }
 
     IEnumerator IEnumerable.GetEnumerator() {
@@ -203,7 +187,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         }
     }
 
-    private void AddFace(in Vector3 center, Direction dir, BlockType type, int meshId) {
+    private void AddFace(Vector3 center, Direction dir, BlockType type, int meshId) {
         var uvPos = (int)type;
         switch (dir) {
             case Direction.UP:

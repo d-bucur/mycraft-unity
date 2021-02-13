@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
+[RequireComponent(typeof(WorldChanges))]
 public class WorldGenerator : MonoBehaviour {
     public int viewRange;
     public int sectorSize;
@@ -18,6 +19,7 @@ public class WorldGenerator : MonoBehaviour {
     public RandomizationType randomizationType; 
     public int seed;
     public int frameRateLimit;
+    private WorldChanges _worldChanges;
     
     public enum RandomizationType {
         NoRandom,
@@ -33,6 +35,7 @@ public class WorldGenerator : MonoBehaviour {
 
     private void Awake() {
         Instance = this;
+        _worldChanges = GetComponent<WorldChanges>();
         Sector.SetSizes(sectorSize, sectorSizeHeight);
         GenerateRandomness();
         GenerateInitialMap();
@@ -75,15 +78,17 @@ public class WorldGenerator : MonoBehaviour {
         int groundHeight = 0;
         int typeNoiseSample = 0;
         foreach (var blockPos in sector) {
-            var worldPos = sector.InternalToWorldPos(blockPos);
-            if (worldPos.z != lastZ || worldPos.x != lastX) {
-                var gridPos = new Vector2Int(worldPos.x, worldPos.z);
+            var planePos = Coordinates.InternalToPlanePos(sector.offset, blockPos);
+            if (planePos.z != lastZ || planePos.x != lastX) {
+                var gridPos = new Vector2Int(planePos.x, planePos.z);
                 groundHeight = (int) SampleMaps(gridPos);
                 typeNoiseSample = (int) typeNoise.Sample(gridPos);
-                lastZ = worldPos.z;
-                lastX = worldPos.x;
+                lastZ = planePos.z;
+                lastX = planePos.x;
             }
-            BlockType blockType = GetBlockType(worldPos, groundHeight, typeNoiseSample);
+            BlockType blockType = _worldChanges.TryGetValue(planePos, out var diffType) ? 
+                diffType : 
+                GetBlockType(planePos, groundHeight, typeNoiseSample);
             sector.AddBlock(blockPos, blockType);
         }
         sector.FinishGeneratingGrid();
@@ -123,7 +128,7 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     public void OnPlayerMoved(Vector2Int oldPos, Vector2Int newPos) {
-        Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
+        // Debug.Log(String.Format("Player moved from sector {0} to {1}", oldPos, newPos));
         var delta = newPos - oldPos;
         if (Mathf.Abs(delta.x) > 0) {
             var xBorder = (int) Mathf.Sign(delta.x) * viewRange;
@@ -199,5 +204,29 @@ public class WorldGenerator : MonoBehaviour {
 
     public Sector GetSector(Vector2Int sectorPos) {
         return _activeSectors[sectorPos];
+    }
+
+    public void ConstructBlock(Vector3Int worldPos) {
+        var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
+        var sector = GetSector(sectorPos);
+        sector.AddBlock(internalPos, BlockType.Grass);
+        var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
+        _worldChanges.Add(planePos, BlockType.Grass);
+        // TODO should only add new meshes instead of redrawing the whole sector
+        sector.FinishGeneratingGrid();
+        sector.GenerateMesh();
+
+    }
+
+    public void DestroyBlock(Vector3Int worldPos) {
+        var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
+        var sector = GetSector(sectorPos);
+        // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
+        sector.AddBlock(internalPos, BlockType.Empty);
+        var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
+        _worldChanges.Add(planePos, BlockType.Empty);
+        // TODO should only add new meshes instead of redrawing the whole sector
+        sector.FinishGeneratingGrid();
+        sector.GenerateMesh();
     }
 }
