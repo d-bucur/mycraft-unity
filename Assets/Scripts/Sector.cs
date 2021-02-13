@@ -52,6 +52,10 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         _blocks[GetId(pos)] = blockType;
     }
 
+    private BlockType GetBlock(in Vector3Int pos) {
+        return _blocks[GetId(pos)];
+    }
+
     public void FinishGeneratingGrid() {
         _isGridGenerated = true;
         _isMeshGenerated = false;
@@ -72,38 +76,37 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         return GetEnumerator();
     }
 
-    private BlockType GetBlock(in Vector3Int pos) {
-        return _blocks[GetId(pos)];
-    }
-
     /** Moves through sector map if position is out of current bounds */
     private BlockType SafeGetBlock(Vector3Int pos) {
-        Vector2Int sectorPos = offset;
         var differentSector = false;
-        if (pos.x < 0) {
-            sectorPos.x--;
+        int sectorPosX = 0;
+        int sectorPosY = 0;
+        var posX = pos.x;
+        if (posX < 0) {
+            sectorPosX--;
             pos.x += sectorSize;
             differentSector = true;
         } 
-        else if (pos.x >= sectorSize) {
-            sectorPos.x++;
+        else if (posX >= sectorSize) {
+            sectorPosX++;
             pos.x -= sectorSize;
             differentSector = true;
         }
-        if (pos.z < 0) {
-            sectorPos.y--;
+        var posZ = pos.z;
+        if (posZ < 0) {
+            sectorPosY--;
             pos.z += sectorSize;
             differentSector = true;
         }
-        else if (pos.z >= sectorSize) {
-            sectorPos.y++;
+        else if (posZ >= sectorSize) {
+            sectorPosY++;
             pos.z -= sectorSize;
             differentSector = true;
         }
-
         if (!differentSector)
             return GetBlock(pos);
         
+        Vector2Int sectorPos = new Vector2Int(offset.x + sectorPosX, offset.y + sectorPosY);
         return WorldGenerator.Instance.GetOrGenerateSector(sectorPos).GetBlock(pos);
     }
 
@@ -123,42 +126,59 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         _isMeshGenerated = true;
     }
 
-    private void SweepMeshFaces() {
-        BlockType? ConstructFace(in Vector3Int currentPos, BlockType? previousType, in Vector3Int lastPosition,
-            Direction currentDirection, Direction previousDirection) {
-            var currentType = SafeGetBlock(currentPos);
-            if (previousType != null) {
-                var prevGroup = Block.GetGroup(previousType.Value);
-                var currentGroup = Block.GetGroup(currentType);
-                if (currentType == BlockType.Empty && previousType == BlockType.Water) {
-                    // draw water surface from both sides
-                    AddFace(lastPosition, currentDirection, previousType.Value, 1);
-                    AddFace(currentPos, previousDirection, previousType.Value, 1);
-                }
-                if (currentGroup != prevGroup) {
-                    // draw solid surface from solid into empty
-                    if (currentGroup == BlockGroup.Transparent)
-                        AddFace(lastPosition, currentDirection, previousType.Value, 0);
-                    else
-                        AddFace(currentPos, previousDirection, currentType, 0);
-                }
-            }
-            previousType = currentType;
-            return previousType;
-        }
+    private struct SweepData {
+        public Vector3Int pos;
+        public BlockType type;
+        public BlockGroup group;
+    }
 
-        BlockType? lastType = null;
-        Vector3Int lastPos = Vector3Int.zero;
+    // TODO remove and inline
+    void FillData(ref SweepData data) {
+        data.type = SafeGetBlock(data.pos);
+        data.group = Block.GetGroup(data.type);
+    }
+
+    SweepData ConstructFace(SweepData previous, Vector3Int currentPos, Direction currentDirection, Direction previousDirection) {
+        SweepData current = default;
+        current.pos = currentPos;
+        FillData(ref current);
+        if (current.group != previous.group) {
+            // draw solid surface from solid into empty
+            if (current.group == BlockGroup.Transparent)
+                AddFace(previous.pos, currentDirection, previous.type, 0);
+            else
+                AddFace(currentPos, previousDirection, current.type, 0);
+        }
+        else if (current.type == BlockType.Empty && previous.type == BlockType.Water) {
+            // draw water surface from both sides
+            AddFace(previous.pos, currentDirection, previous.type, 1);
+            AddFace(currentPos, previousDirection, previous.type, 1);
+        }
+        current.pos = currentPos;
+        current.type = current.type;
+        current.group = current.group;
+        return current;
+    }
+
+    private void SweepMeshFaces() {
+        bool hasLast = false;
+        SweepData last = default;
 
         // Sweep up
         for (var x = 0; x < sectorSize; x++) {
             for (var z = 0; z < sectorSize; z++) {
                 for (var y = 0; y < sectorSizeHeight; y++) {
                     var currentPos = new Vector3Int(x, y, z);
-                    lastType = ConstructFace(currentPos, lastType, lastPos, Direction.UP, Direction.DOWN);
-                    lastPos = currentPos;
+                    // TODO move if inside Construct face
+                    if (hasLast)
+                        last = ConstructFace(last, currentPos, Direction.UP, Direction.DOWN);
+                    else {
+                        last.pos = currentPos;
+                        FillData(ref last);
+                        hasLast = true;
+                    }
                 }
-                lastType = null;
+                hasLast = false;
             }
         }
 
@@ -167,10 +187,15 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             for (var y = 0; y < sectorSizeHeight; y++) {
                 for (var z = -1; z <= sectorSize; z++) {
                     var currentPos = new Vector3Int(x, y, z);
-                    lastType = ConstructFace(currentPos, lastType, lastPos, Direction.FORWARD, Direction.BACK);
-                    lastPos = currentPos;
+                    if (hasLast)
+                        last = ConstructFace(last, currentPos, Direction.FORWARD, Direction.BACK);
+                    else {
+                        last.pos = currentPos;
+                        FillData(ref last);
+                        hasLast = true;
+                    }
                 }
-                lastType = null;
+                hasLast = false;
             }
         }
 
@@ -179,15 +204,20 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             for (var z = 0; z < sectorSize; z++) {
                 for (var x = -1; x <= sectorSize; x++) {
                     var currentPos = new Vector3Int(x, y, z);
-                    lastType = ConstructFace(currentPos, lastType, lastPos, Direction.RIGHT, Direction.LEFT);
-                    lastPos = currentPos;
+                    if (hasLast)
+                        last = ConstructFace(last, currentPos, Direction.RIGHT, Direction.LEFT);
+                    else {
+                        last.pos = currentPos;
+                        FillData(ref last);
+                        hasLast = true;
+                    }
                 }
-                lastType = null;
+                hasLast = false;
             }
         }
     }
 
-    private void AddFace(Vector3 center, Direction dir, BlockType type, int meshId) {
+    private void AddFace(in Vector3 center, Direction dir, BlockType type, int meshId) {
         var uvPos = (int)type;
         switch (dir) {
             case Direction.UP:
@@ -212,8 +242,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     }
     
     private const float _uvDelta = 1f / _uvMapSize;
-    private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center, int uvX,
-        int uvY, int meshId) {
+    private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center,
+        int uvX, int uvY, int meshId) {
         var vertices = _meshHelpers[meshId].vertices;
         var uvs = _meshHelpers[meshId].uvs;
         var triangles = _meshHelpers[meshId].triangles;

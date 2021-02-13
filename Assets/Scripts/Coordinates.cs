@@ -27,11 +27,11 @@ internal static class Coordinates {
         return (sectorPos, internalPos);
     }
 
-    public static Vector3Int InternalToPlanePos(Vector2Int sector, Vector3Int pos) {
-        // TODO create new struct directly
-        pos.x += sector.x * Sector.sectorSize;
-        pos.z += sector.y * Sector.sectorSize;
-        pos.y -= Sector.sectorSizeHeight / 2;
-        return pos;
+    public static Vector3Int InternalToPlanePos(in Vector2Int sector, in Vector3Int pos) {
+        return new Vector3Int(
+            pos.x + sector.x * Sector.sectorSize,
+            pos.y - Sector.sectorSizeHeight / 2,
+            pos.z + sector.y * Sector.sectorSize
+        );
     }
 }
