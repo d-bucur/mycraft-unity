@@ -165,7 +165,7 @@ MonoBehaviour:
     frequency: 0.01
     power: 1
     offset: {x: 0, y: 0}
-  - amplitude: 200
+  - amplitude: 400
     frequency: 0.01
     power: 4
     offset: {x: 0, y: 0}
@@ -181,7 +181,7 @@ MonoBehaviour:
   sandTreshold: -5
   randomizationType: 1
   seed: 42
-  frameRateLimit: 60
+  frameRateLimit: 0
 --- !u!4 &196098818
 Transform:
   m_ObjectHideFlags: 0
@@ -949,13 +949,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6579b8ce0f05d054b8697eda7b818ea0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkingSpeed: 10
-  fastFactor: 3
+  walkingSpeed: 7
+  fastFactor: 4
   jumpSpeed: 9
   gravity: 20
   playerCamera: {fileID: 963194227}
   lookSpeed: 2
   lookXLimit: 85
+  flyMode: 0
   canMove: 1
 --- !u!143 &2095145686
 CharacterController:
