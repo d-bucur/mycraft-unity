@@ -130,34 +130,30 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         public Vector3Int pos;
         public BlockType type;
         public BlockGroup group;
+
+        public SweepData(Vector3Int pos, BlockType type, BlockGroup group) {
+            this.pos = pos;
+            this.type = type;
+            this.group = group;
+        }
     }
 
-    // TODO remove and inline
-    void FillData(ref SweepData data) {
-        data.type = SafeGetBlock(data.pos);
-        data.group = Block.GetGroup(data.type);
-    }
-
-    SweepData ConstructFace(SweepData previous, Vector3Int currentPos, Direction currentDirection, Direction previousDirection) {
-        SweepData current = default;
-        current.pos = currentPos;
-        FillData(ref current);
-        if (current.group != previous.group) {
+    SweepData ConstructFace(in SweepData previous, in Vector3Int currentPos, Direction currentDirection, Direction previousDirection) {
+        var currentType = SafeGetBlock(currentPos);
+        var currentGroup = Block.GetGroup(currentType);
+        if (currentGroup != previous.group) {
             // draw solid surface from solid into empty
-            if (current.group == BlockGroup.Transparent)
+            if (currentGroup == BlockGroup.Transparent)
                 AddFace(previous.pos, currentDirection, previous.type, 0);
             else
-                AddFace(currentPos, previousDirection, current.type, 0);
+                AddFace(currentPos, previousDirection, currentType, 0);
         }
-        else if (current.type == BlockType.Empty && previous.type == BlockType.Water) {
+        else if (currentType == BlockType.Empty && previous.type == BlockType.Water) {
             // draw water surface from both sides
             AddFace(previous.pos, currentDirection, previous.type, 1);
             AddFace(currentPos, previousDirection, previous.type, 1);
         }
-        current.pos = currentPos;
-        current.type = current.type;
-        current.group = current.group;
-        return current;
+        return new SweepData(currentPos, currentType, currentGroup);
     }
 
     private void SweepMeshFaces() {
@@ -174,7 +170,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
                         last = ConstructFace(last, currentPos, Direction.UP, Direction.DOWN);
                     else {
                         last.pos = currentPos;
-                        FillData(ref last);
+                        last.type = SafeGetBlock(last.pos);
+                        last.group = Block.GetGroup(last.type);
                         hasLast = true;
                     }
                 }
@@ -191,7 +188,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
                         last = ConstructFace(last, currentPos, Direction.FORWARD, Direction.BACK);
                     else {
                         last.pos = currentPos;
-                        FillData(ref last);
+                        last.type = SafeGetBlock(last.pos);
+                        last.group = Block.GetGroup(last.type);
                         hasLast = true;
                     }
                 }
@@ -208,7 +206,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
                         last = ConstructFace(last, currentPos, Direction.RIGHT, Direction.LEFT);
                     else {
                         last.pos = currentPos;
-                        FillData(ref last);
+                        last.type = SafeGetBlock(last.pos);
+                        last.group = Block.GetGroup(last.type);
                         hasLast = true;
                     }
                 }
