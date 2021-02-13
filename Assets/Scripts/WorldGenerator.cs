@@ -98,10 +98,7 @@ public class WorldGenerator : MonoBehaviour {
     private BlockType GetBlockType(Vector3Int worldPos, int groundHeight, int noise = 0) {
         BlockType blockType;
         if (worldPos.y > groundHeight) {
-            if (worldPos.y < waterTreshold)
-                blockType = BlockType.Water;
-            else
-                blockType = BlockType.Empty;
+            blockType = worldPos.y < waterTreshold ? BlockType.Water : BlockType.Empty;
         }
         else {
             if (worldPos.y + noise > snowTreshold)
@@ -150,8 +147,6 @@ public class WorldGenerator : MonoBehaviour {
                 ReleaseSector(new Vector2Int(x, removeY-delta.y));
                 _sectorsToRender.Enqueue(new Vector2Int(x, addY));
             }
-            // TODO hidden sectors on the side get left out of release
-            // TODO bug when moving diagonally
         }
         
         if (Mathf.Abs(delta.y) > 1 || Mathf.Abs(delta.x) > 1)
@@ -222,9 +217,11 @@ public class WorldGenerator : MonoBehaviour {
         var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
         var sector = GetSector(sectorPos);
         // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
-        sector.AddBlock(internalPos, BlockType.Empty);
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
-        _worldChanges.Add(planePos, BlockType.Empty);
+        var blockType = planePos.y < waterTreshold ? BlockType.Water : BlockType.Empty;
+        sector.AddBlock(internalPos, blockType);
+        _worldChanges.Add(planePos, blockType);
+        Debug.Log("Removed to " + blockType);
         // TODO should only add new meshes instead of redrawing the whole sector
         sector.FinishGeneratingGrid();
         sector.GenerateMesh();
