@@ -1,12 +1,13 @@
 using System;
+using Unity.Mathematics;
 using UnityEngine;
 
 [Serializable]
-public class NoiseMap {
+public struct NoiseMap {
     public float amplitude;
     public float frequency;
     public float power;
-    public Vector2 offset;
+    public float2 offset;
 
     public float Sample(Vector2Int pos) {
         var px = pos.x * frequency + offset.x;
@@ -14,5 +15,16 @@ public class NoiseMap {
         var z = Mathf.PerlinNoise(px, py) - 0.5f;
         z = Mathf.Pow(z, power);
         return z * amplitude;
+    }
+    
+    public float SampleJob(int2 pos) {
+        var p =(float2)pos * frequency + offset;
+        // var z = noise.cnoise(p);
+        var z = Mathf.PerlinNoise(p.x, p.y) - 0.5f;
+        // Debug.Log($"noise: {z}");
+        z = math.pow(z, power);
+        float res = z * amplitude;
+        // Debug.Log($"returning {res}");
+        return res;
     }
 }

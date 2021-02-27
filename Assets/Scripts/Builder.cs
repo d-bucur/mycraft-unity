@@ -10,7 +10,7 @@ public class Builder : MonoBehaviour {
     private void Awake() {
         _layerMask = LayerMask.GetMask("World");
         var startPosition = WorldGenerator.Instance.GetHeightAt(new Vector2Int(0, 0));
-        transform.position = startPosition + new Vector3(0, 10, 0);
+        transform.position = startPosition + new Vector3(0, 50, 0);
     }
 
     void Update() {

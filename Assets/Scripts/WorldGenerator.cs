@@ -1,6 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Unity.Collections;
+using Unity.Jobs;
+using Unity.Jobs.LowLevel.Unsafe;
+using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
@@ -10,6 +14,7 @@ public class WorldGenerator : MonoBehaviour {
     public int sectorSize;
     public int sectorSizeHeight;
     public List<NoiseMap> noiseMaps;
+    private NativeArray<NoiseMap> _noiseMapsNative;
     public NoiseMap typeNoise;
     public float regenTimeBudget;
     public Sector sectorTemplate;
@@ -37,9 +42,21 @@ public class WorldGenerator : MonoBehaviour {
         Instance = this;
         _worldChanges = GetComponent<WorldChanges>();
         Sector.SetSizes(sectorSize, sectorSizeHeight);
+        PrepareNativeMaps();
         GenerateRandomness();
         GenerateInitialMap();
         Random.InitState(seed);
+    }
+
+    private void PrepareNativeMaps() {
+        _noiseMapsNative = new NativeArray<NoiseMap>(noiseMaps.Count, Allocator.Persistent);
+        for (int i = 0; i < noiseMaps.Count; i++) {
+            _noiseMapsNative[i] = noiseMaps[i];
+        }
+    }
+
+    private void OnDestroy() {
+        _noiseMapsNative.Dispose();
     }
 
     private void GenerateRandomness() { 
@@ -49,8 +66,11 @@ public class WorldGenerator : MonoBehaviour {
             Random.InitState(seed); 
         else if (randomizationType == RandomizationType.Random) 
             Random.InitState((int)DateTimeOffset.Now.ToUnixTimeSeconds()); 
-        foreach (var t in noiseMaps) 
-            t.offset = new Vector2(Random.Range(-1000.0f, 1000.0f), Random.Range(-1000.0f, 1000.0f));
+        for (int i = 0; i < noiseMaps.Count; i++) {
+            var map = noiseMaps[i];
+            map.offset = new float2(Random.Range(-1000.0f, 1000.0f), Random.Range(-1000.0f, 1000.0f));
+            noiseMaps[i] = map;
+        }
     }
 
     private void Start() {
@@ -71,6 +91,29 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void GenerateSector(Sector sector, in Vector2Int pos) {
+        int sectorBlocks = Sector.GetTotalBlocks();
+        int batchCount = sectorBlocks / JobsUtility.JobWorkerCount;
+        // Debug.Log($"Generating sector {pos} with {sectorBlocks} blocks divided into chunks of {batchCount}");
+        var generatedBlocks = new NativeArray<int>(sectorBlocks, Allocator.TempJob);
+        // TODO optimization: only do sampling job once for a single x,y point
+        var job = new SectorGenerationJob {
+            noiseMaps = _noiseMapsNative,
+            generatedBlocks = generatedBlocks,
+            sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
+            sectorOffset = pos.ToVector2Int(),
+        };
+        var handle = job.Schedule(sectorBlocks, batchCount);
+        handle.Complete();
+        
+        sector.offset = pos;
+        sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
+        sector.copyJobData(generatedBlocks);
+        sector.FinishGeneratingGrid();
+        generatedBlocks.Dispose();
+        _activeSectors.Add(pos, sector);
+    }
+
+    private void GenerateSectorOld(Sector sector, in Vector2Int pos) {
         sector.offset = pos;
         sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
 

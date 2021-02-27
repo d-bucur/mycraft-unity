@@ -1,6 +1,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 
 [RequireComponent(typeof(MeshFilter))]
@@ -61,7 +63,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         _isMeshGenerated = false;
     }
 
-    private static int GetId(in Vector3Int pos) {
+    public static int GetId(in Vector3Int pos) {
         return pos.x * _xSize + pos.z * _zSize + pos.y;
     }
 
@@ -181,7 +183,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         // Sweep forward
         for (var x = 0; x < sectorSize; x++) {
             for (var y = 0; y < sectorSizeHeight; y++) {
-                for (var z = -1; z <= sectorSize; z++) {
+                for (var z = 0; z < sectorSize; z++) {
                     var currentPos = new Vector3Int(x, y, z);
                     if (hasLast)
                         last = ConstructFace(last, currentPos, Direction.FORWARD, Direction.BACK);
@@ -199,7 +201,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         // Sweep right
         for (var y = 0; y < sectorSizeHeight; y++) {
             for (var z = 0; z < sectorSize; z++) {
-                for (var x = -1; x <= sectorSize; x++) {
+                for (var x = 0; x < sectorSize; x++) {
                     var currentPos = new Vector3Int(x, y, z);
                     if (hasLast)
                         last = ConstructFace(last, currentPos, Direction.RIGHT, Direction.LEFT);
@@ -268,5 +270,15 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
 
     public void Hide() {
         gameObject.SetActive(false);
+    }
+
+    public static int GetTotalBlocks() {
+        return sectorSize * sectorSize * sectorSizeHeight;
+    }
+
+    public void copyJobData(NativeArray<int> native) {
+        for (int i = 0; i < native.Length; i++) {
+            _blocks[i] = (BlockType)native[i];
+        }
     }
 }

@@ -1,3 +1,4 @@
+using Unity.Mathematics;
 using UnityEngine;
 
 internal static class Coordinates {
@@ -32,6 +33,14 @@ internal static class Coordinates {
             pos.x + sector.x * Sector.sectorSize,
             pos.y - Sector.sectorSizeHeight / 2,
             pos.z + sector.y * Sector.sectorSize
+        );
+    }
+    
+    public static int3 InternalToPlanePos(in int2 sector, in int3 pos, int2 sectorSize) {
+        return new int3(
+            pos.x + sector.x * sectorSize.x,
+            pos.y - sectorSize.y / 2,
+            pos.z + sector.y * sectorSize.x
         );
     }
 }

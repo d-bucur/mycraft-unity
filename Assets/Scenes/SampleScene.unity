@@ -153,27 +153,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b5227cc32ff04d342a1071010bdc0c07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  viewRange: 20
-  sectorSize: 15
+  viewRange: 10
+  sectorSize: 30
   sectorSizeHeight: 150
   noiseMaps:
   - amplitude: 30
     frequency: 0.05
     power: 1
-    offset: {x: 0, y: 0}
+    offset:
+      x: 0
+      y: 0
   - amplitude: 100
     frequency: 0.01
     power: 1
-    offset: {x: 0, y: 0}
+    offset:
+      x: 0
+      y: 0
   - amplitude: 400
     frequency: 0.01
     power: 4
-    offset: {x: 0, y: 0}
+    offset:
+      x: 0
+      y: 0
   typeNoise:
     amplitude: 30
     frequency: 0.01
     power: 1
-    offset: {x: 0, y: 0}
+    offset:
+      x: 0
+      y: 0
   regenTimeBudget: 0.01
   sectorTemplate: {fileID: 569589763807964434, guid: 4d04bae28f2478545ac742228b7fd763, type: 3}
   waterTreshold: -10
@@ -181,7 +189,7 @@ MonoBehaviour:
   sandTreshold: -5
   randomizationType: 1
   seed: 42
-  frameRateLimit: 0
+  frameRateLimit: 30
 --- !u!4 &196098818
 Transform:
   m_ObjectHideFlags: 0
