@@ -36,14 +36,14 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
 
     public void Init() {
         _blocks = new BlockType[sectorSize * sectorSize * sectorSizeHeight];
-        var predictedVertices = _xSize * sectorSize / 2;
+        var averageFaces = sectorSize * sectorSize * 2;
         for (int i = 0; i < _meshHelpers.Length; i++) {
-            _meshHelpers[i] = new MeshHelper(predictedVertices);
+            _meshHelpers[i] = new MeshHelper(averageFaces);
         }
         blocksNative = new NativeArray<BlockType>(GetTotalBlocks(), Allocator.Persistent);
-        _triangles = new NativeList<int>(Allocator.Persistent);
-        _uvs = new NativeList<Vector2>(Allocator.Persistent);
-        _vertices = new NativeList<Vector3>(Allocator.Persistent);
+        _triangles = new NativeList<int>(averageFaces, Allocator.Persistent);
+        _uvs = new NativeList<Vector2>(averageFaces, Allocator.Persistent);
+        _vertices = new NativeList<Vector3>(averageFaces, Allocator.Persistent);
     }
 
     public void AddBlock(in Vector3Int pos, BlockType blockType) {
@@ -60,7 +60,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     }
 
     public static int GetId(in Vector3Int pos, in int2 sectorSize) {
-        return pos.x * sectorSize.x + pos.z * sectorSize.y + pos.y;
+        // TODO cache
+        return pos.x * sectorSize.x * sectorSize.y + pos.z * sectorSize.y + pos.y;
     }
 
     public static int3 IdToPos(int index, in int2 sectorSize) {
@@ -111,36 +112,13 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         var solidsMesh = _meshHelpers[0].MakeMesh();
         GetComponent<MeshFilter>().mesh = solidsMesh;
         GetComponent<MeshCollider>().sharedMesh = solidsMesh;
-        gameObject.SetActive(true);
         var transparentsMesh = _meshHelpers[1].MakeMesh();
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
+        gameObject.SetActive(true);
         _isMeshGenerated = true;
         _triangles.Clear();
         _uvs.Clear();
         _vertices.Clear();
-    }
-
-    private void SweepMeshFaces() {
-        // TODO persist and reuse native collections?
-        var triangles = new NativeList<int>(Allocator.TempJob);
-        var uvs = new NativeList<Vector2>(Allocator.TempJob);
-        var vertices = new NativeList<Vector3>(Allocator.TempJob);
-        var job = new MeshGenerationJob {
-            triangles = triangles,
-            uvs = uvs,
-            vertices = vertices,
-            sectorSize = new int2(sectorSize,sectorSizeHeight),
-            blocks = blocksNative,
-        };
-        var jobHandle = job.Schedule();
-        jobHandle.Complete();
-        // TODO find some copy that doesn't generate garbage
-        _meshHelpers[0].triangles.SetArray(job.triangles.ToArray());
-        _meshHelpers[0].uvs.SetArray(job.uvs.ToArray());
-        _meshHelpers[0].vertices.SetArray(job.vertices.ToArray());
-        triangles.Dispose();
-        uvs.Dispose();
-        vertices.Dispose();
     }
 
     public void Hide() {

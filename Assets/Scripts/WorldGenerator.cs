@@ -93,8 +93,6 @@ public class WorldGenerator : MonoBehaviour {
         sector.offset = pos;
         sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
         sector.StartGeneratingGrid();
-
-        // TODO optimization: only do sampling job once for a single x,y point
         var job = new SectorGenerationJob {
             noiseMaps = _noiseMapsNative,
             generatedBlocks = sector.blocksNative,

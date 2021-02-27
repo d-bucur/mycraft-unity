@@ -22,12 +22,6 @@ public struct MeshGenerationJob : IJob {
         public Vector3Int pos;
         public BlockType type;
         public BlockGroup group;
-
-        public SweepData(Vector3Int pos, BlockType type, BlockGroup group) {
-            this.pos = pos;
-            this.type = type;
-            this.group = group;
-        }
     }
 
     private enum Direction {
@@ -118,10 +112,14 @@ public struct MeshGenerationJob : IJob {
         }
         else if (currentType == BlockType.Empty && previous.type == BlockType.Water) {
             // draw water surface from both sides
-            AddFace(previous.pos, currentDirection, previous.type, 1);
-            AddFace(currentPos, previousDirection, previous.type, 1);
+            // AddFace(previous.pos, currentDirection, previous.type, 1);
+            // AddFace(currentPos, previousDirection, previous.type, 1);
         }
-        return new SweepData(currentPos, currentType, currentGroup);
+        return new SweepData {
+            pos = currentPos,
+            group = currentGroup,
+            type = currentType,
+        };
     }
 
     private BlockType SafeGetBlock(in Vector3Int lastPos) {
