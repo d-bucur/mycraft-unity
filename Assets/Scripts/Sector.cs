@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections;
+using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
@@ -31,6 +32,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     private static readonly Vector3 _ldb = new Vector3(-_s, -_s, -_s);
     private static readonly Vector3 _ldf = new Vector3(-_s, -_s, _s);
     private static readonly Vector3 _rdf = new Vector3(_s, -_s, _s);
+    public JobHandle writeHandle;
+    public NativeArray<int> generatedBlocks;
 
     private enum Direction {
         UP, DOWN, RIGHT, LEFT, FORWARD, BACK
@@ -113,6 +116,12 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     }
 
     public void GenerateMesh() {
+        if (!_isGridGenerated) {
+            writeHandle.Complete();
+            copyJobData(generatedBlocks);
+            FinishGeneratingGrid();
+            generatedBlocks.Dispose();
+        }
         if (_isGridGenerated && _isMeshGenerated)
             return;
         
@@ -280,5 +289,9 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         for (int i = 0; i < native.Length; i++) {
             _blocks[i] = (BlockType)native[i];
         }
+    }
+
+    public void StartGeneratingGrid() {
+        _isGridGenerated = false;
     }
 }
