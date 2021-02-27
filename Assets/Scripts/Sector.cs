@@ -21,8 +21,12 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     public static int sectorSize;
     public static int sectorSizeHeight;
     private static int _xSize, _zSize;
+    
     public JobHandle writeHandle;
-    public NativeArray<BlockType> generatedBlocks;
+    public NativeArray<BlockType> blocksNative;
+    private NativeList<int> _triangles;
+    private NativeList<Vector2> _uvs;
+    private NativeList<Vector3> _vertices;
 
     public static void SetSizes(int sectorSize, int sectorSizeHeight) {
         Sector.sectorSize = sectorSize;
@@ -36,6 +40,10 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         for (int i = 0; i < _meshHelpers.Length; i++) {
             _meshHelpers[i] = new MeshHelper(predictedVertices);
         }
+        blocksNative = new NativeArray<BlockType>(GetTotalBlocks(), Allocator.Persistent);
+        _triangles = new NativeList<int>(Allocator.Persistent);
+        _uvs = new NativeList<Vector2>(Allocator.Persistent);
+        _vertices = new NativeList<Vector3>(Allocator.Persistent);
     }
 
     public void AddBlock(in Vector3Int pos, BlockType blockType) {
@@ -74,19 +82,32 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         return GetEnumerator();
     }
 
-    public void GenerateMesh() {
+    public void StartGeneratingMesh() {
         if (!_isGridGenerated) {
-            writeHandle.Complete();
-            CopyJobData(generatedBlocks);
+            CopyJobData(blocksNative);
             FinishGeneratingGrid();
-            generatedBlocks.Dispose();
         }
         if (_isGridGenerated && _isMeshGenerated)
             return;
         
         foreach (var helper in _meshHelpers)
             helper.Clear();
-        SweepMeshFaces();
+        
+        var job = new MeshGenerationJob {
+            triangles = _triangles,
+            uvs = _uvs,
+            vertices = _vertices,
+            sectorSize = new int2(sectorSize,sectorSizeHeight),
+            blocks = blocksNative,
+        };
+        writeHandle = job.Schedule();
+    }
+
+    public void FinishGeneratingMesh() {
+        // TODO find some copy that doesn't generate garbage
+        _meshHelpers[0].triangles.SetArray(_triangles.ToArray());
+        _meshHelpers[0].uvs.SetArray(_uvs.ToArray());
+        _meshHelpers[0].vertices.SetArray(_vertices.ToArray());
         var solidsMesh = _meshHelpers[0].MakeMesh();
         GetComponent<MeshFilter>().mesh = solidsMesh;
         GetComponent<MeshCollider>().sharedMesh = solidsMesh;
@@ -94,6 +115,9 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         var transparentsMesh = _meshHelpers[1].MakeMesh();
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
         _isMeshGenerated = true;
+        _triangles.Clear();
+        _uvs.Clear();
+        _vertices.Clear();
     }
 
     private void SweepMeshFaces() {
@@ -101,13 +125,12 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         var triangles = new NativeList<int>(Allocator.TempJob);
         var uvs = new NativeList<Vector2>(Allocator.TempJob);
         var vertices = new NativeList<Vector3>(Allocator.TempJob);
-        var blocks = new NativeArray<BlockType>(_blocks, Allocator.TempJob);
         var job = new MeshGenerationJob {
             triangles = triangles,
             uvs = uvs,
             vertices = vertices,
             sectorSize = new int2(sectorSize,sectorSizeHeight),
-            blocks = blocks,
+            blocks = blocksNative,
         };
         var jobHandle = job.Schedule();
         jobHandle.Complete();
@@ -118,7 +141,6 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         triangles.Dispose();
         uvs.Dispose();
         vertices.Dispose();
-        blocks.Dispose();
     }
 
     public void Hide() {
@@ -135,5 +157,12 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
 
     public void StartGeneratingGrid() {
         _isGridGenerated = false;
+    }
+
+    private void OnDestroy() {
+        blocksNative.Dispose();
+        _uvs.Dispose();
+        _triangles.Dispose();
+        _vertices.Dispose();
     }
 }

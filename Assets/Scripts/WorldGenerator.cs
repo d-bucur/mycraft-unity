@@ -79,14 +79,22 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void GenerateInitialMap() {
+        var generatedSectors = new List<Sector>();
         for (var x = -viewRange; x <= viewRange; x++) {
             for (var y = -viewRange; y <= viewRange; y++) {
                 var sectorPos = new Vector2Int(x, y);
-                GetOrGenerateSector(sectorPos);
+                generatedSectors.Add(GetOrGenerateSector(sectorPos));
             }
         }
-        foreach (var sector in _activeSectors.ToList()) {
-            sector.Value.GenerateMesh();
+        for (int i = 0; i < generatedSectors.Count; i++) {
+            generatedSectors[i].writeHandle.Complete();
+        }
+        for (int i = 0; i < generatedSectors.Count; i++) {
+            generatedSectors[i].StartGeneratingMesh();
+        }
+        for (int i = 0; i < generatedSectors.Count; i++) {
+            generatedSectors[i].writeHandle.Complete();
+            generatedSectors[i].FinishGeneratingMesh();
         }
     }
 
@@ -94,19 +102,17 @@ public class WorldGenerator : MonoBehaviour {
         sector.offset = pos;
         sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
         sector.StartGeneratingGrid();
-        
-        int sectorBlocks = Sector.GetTotalBlocks();
-        int batchCount = sectorBlocks / JobsUtility.JobWorkerCount;
-        // Debug.Log($"Generating sector {pos} with {sectorBlocks} blocks divided into chunks of {batchCount}");
-        sector.generatedBlocks = new NativeArray<BlockType>(sectorBlocks, Allocator.TempJob);
+
+        int totalBlocks = Sector.GetTotalBlocks();
+        int batchCount = totalBlocks / JobsUtility.JobWorkerCount;
         // TODO optimization: only do sampling job once for a single x,y point
         var job = new SectorGenerationJob {
             noiseMaps = _noiseMapsNative,
-            generatedBlocks = sector.generatedBlocks,
+            generatedBlocks = sector.blocksNative,
             sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
             sectorOffset = pos.ToVector2Int(),
         };
-        var handle = job.Schedule(sectorBlocks, batchCount);
+        var handle = job.Schedule(totalBlocks, batchCount);
         sector.writeHandle = handle;
         _activeSectors.Add(pos, sector);
     }
@@ -202,17 +208,22 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void LateUpdate() {
-        var startTime = Time.realtimeSinceStartup;
+        var sectorsToGenerate = new List<Sector>(_sectorsToRender.Count);
         while (_sectorsToRender.Count > 0) {
             var newPos = _sectorsToRender.Dequeue();
             var sector = GetOrGenerateSector(newPos);
-            sector.GenerateMesh();  // TODO queue up multiple jobs of this 
-
-            var deltaTime = Time.realtimeSinceStartup - startTime;
-            if (deltaTime > regenTimeBudget) {
-                // Skip further rendering to next frame due to budget restriction
-                break;
-            }
+            sectorsToGenerate.Add(sector);
+        }
+        for (int i = 0; i < sectorsToGenerate.Count; i++) {
+            sectorsToGenerate[i].writeHandle.Complete();
+        }
+        for (int i = 0; i < sectorsToGenerate.Count; i++) {
+            sectorsToGenerate[i].StartGeneratingMesh();
+        }
+        for (int i = 0; i < sectorsToGenerate.Count; i++) {
+            var sector = sectorsToGenerate[i];
+            sector.writeHandle.Complete();
+            sector.FinishGeneratingMesh();
         }
     }
     
@@ -250,8 +261,7 @@ public class WorldGenerator : MonoBehaviour {
         _worldChanges.Add(planePos, BlockType.Grass);
         // TODO should only add new meshes instead of redrawing the whole sector
         sector.FinishGeneratingGrid();
-        sector.GenerateMesh();
-
+        sector.StartGeneratingMesh();
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
@@ -264,6 +274,6 @@ public class WorldGenerator : MonoBehaviour {
         _worldChanges.Add(planePos, blockType);
         // TODO should only add new meshes instead of redrawing the whole sector
         sector.FinishGeneratingGrid();
-        sector.GenerateMesh();
+        sector.StartGeneratingMesh();
     }
 }
