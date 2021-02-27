@@ -79,23 +79,14 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void GenerateInitialMap() {
-        var generatedSectors = new List<Sector>();
+        var sectors = new List<Sector>();
         for (var x = -viewRange; x <= viewRange; x++) {
             for (var y = -viewRange; y <= viewRange; y++) {
                 var sectorPos = new Vector2Int(x, y);
-                generatedSectors.Add(GetOrGenerateSector(sectorPos));
+                sectors.Add(GetOrGenerateSector(sectorPos));
             }
         }
-        for (int i = 0; i < generatedSectors.Count; i++) {
-            generatedSectors[i].writeHandle.Complete();
-        }
-        for (int i = 0; i < generatedSectors.Count; i++) {
-            generatedSectors[i].StartGeneratingMesh();
-        }
-        for (int i = 0; i < generatedSectors.Count; i++) {
-            generatedSectors[i].writeHandle.Complete();
-            generatedSectors[i].FinishGeneratingMesh();
-        }
+        GenerateSectorsParallel(sectors);
     }
 
     private void GenerateSector(Sector sector, in Vector2Int pos) {
@@ -112,7 +103,7 @@ public class WorldGenerator : MonoBehaviour {
             sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
             sectorOffset = pos.ToVector2Int(),
         };
-        var handle = job.Schedule(totalBlocks, batchCount);
+        var handle = job.Schedule(totalBlocks, totalBlocks);
         sector.writeHandle = handle;
         _activeSectors.Add(pos, sector);
     }
@@ -209,24 +200,29 @@ public class WorldGenerator : MonoBehaviour {
 
     private void LateUpdate() {
         var sectorsToGenerate = new List<Sector>(_sectorsToRender.Count);
-        while (_sectorsToRender.Count > 0) {
+        while (_sectorsToRender.Count > 0 && sectorsToGenerate.Count < JobsUtility.JobWorkerCount) {
             var newPos = _sectorsToRender.Dequeue();
-            var sector = GetOrGenerateSector(newPos);
-            sectorsToGenerate.Add(sector);
+            sectorsToGenerate.Add(GetOrGenerateSector(newPos));
         }
+        GenerateSectorsParallel(sectorsToGenerate);
+        // TODO repeat until budget is filled up
+    }
+
+    private static void GenerateSectorsParallel(List<Sector> sectorsToGenerate) {
+        JobHandle.ScheduleBatchedJobs();
         for (int i = 0; i < sectorsToGenerate.Count; i++) {
-            sectorsToGenerate[i].writeHandle.Complete();
+            var sector = sectorsToGenerate[i];
+            sector.writeHandle.Complete();
+            sector.StartGeneratingMesh();
         }
-        for (int i = 0; i < sectorsToGenerate.Count; i++) {
-            sectorsToGenerate[i].StartGeneratingMesh();
-        }
+        JobHandle.ScheduleBatchedJobs();
         for (int i = 0; i < sectorsToGenerate.Count; i++) {
             var sector = sectorsToGenerate[i];
             sector.writeHandle.Complete();
             sector.FinishGeneratingMesh();
         }
     }
-    
+
     public Sector GetOrGenerateSector(Vector2Int sectorPos) {
         Sector sector;
         if (_activeSectors.TryGetValue(sectorPos, out sector)) {
