@@ -33,7 +33,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     private static readonly Vector3 _ldf = new Vector3(-_s, -_s, _s);
     private static readonly Vector3 _rdf = new Vector3(_s, -_s, _s);
     public JobHandle writeHandle;
-    public NativeArray<int> generatedBlocks;
+    public NativeArray<BlockType> generatedBlocks;
 
     private enum Direction {
         UP, DOWN, RIGHT, LEFT, FORWARD, BACK
@@ -285,10 +285,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         return sectorSize * sectorSize * sectorSizeHeight;
     }
 
-    public void copyJobData(NativeArray<int> native) {
-        for (int i = 0; i < native.Length; i++) {
-            _blocks[i] = (BlockType)native[i];
-        }
+    public void copyJobData(NativeArray<BlockType> native) {
+        native.CopyTo(_blocks);
     }
 
     public void StartGeneratingGrid() {

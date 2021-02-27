@@ -9,7 +9,7 @@ public struct SectorGenerationJob : IJobParallelFor {
     [ReadOnly] public NativeArray<NoiseMap> noiseMaps;
     [ReadOnly] public int2 sectorSize;
     [ReadOnly] public int2 sectorOffset;
-    public NativeArray<int> generatedBlocks;
+    public NativeArray<BlockType> generatedBlocks;
 
     public void Execute(int index) {
         float pointHeight = 0f;
@@ -19,7 +19,7 @@ public struct SectorGenerationJob : IJobParallelFor {
             float sample = noiseMaps[i].SampleJob(planePos.xz);
             pointHeight += sample;
         }
-        generatedBlocks[index] = planePos.y < pointHeight ? 3 : 4;
+        generatedBlocks[index] = planePos.y < pointHeight ? BlockType.Grass : BlockType.Empty;
     }
 
     public int3 idToPos(int index) {

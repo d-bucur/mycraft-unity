@@ -98,7 +98,7 @@ public class WorldGenerator : MonoBehaviour {
         int sectorBlocks = Sector.GetTotalBlocks();
         int batchCount = sectorBlocks / JobsUtility.JobWorkerCount;
         // Debug.Log($"Generating sector {pos} with {sectorBlocks} blocks divided into chunks of {batchCount}");
-        sector.generatedBlocks = new NativeArray<int>(sectorBlocks, Allocator.TempJob);
+        sector.generatedBlocks = new NativeArray<BlockType>(sectorBlocks, Allocator.TempJob);
         // TODO optimization: only do sampling job once for a single x,y point
         var job = new SectorGenerationJob {
             noiseMaps = _noiseMapsNative,
