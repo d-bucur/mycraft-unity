@@ -206,7 +206,7 @@ public class WorldGenerator : MonoBehaviour {
         while (_sectorsToRender.Count > 0) {
             var newPos = _sectorsToRender.Dequeue();
             var sector = GetOrGenerateSector(newPos);
-            sector.GenerateMesh();
+            sector.GenerateMesh();  // TODO queue up multiple jobs of this 
 
             var deltaTime = Time.realtimeSinceStartup - startTime;
             if (deltaTime > regenTimeBudget) {

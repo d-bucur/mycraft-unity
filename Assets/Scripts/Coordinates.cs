@@ -36,7 +36,7 @@ internal static class Coordinates {
         );
     }
     
-    public static int3 InternalToPlanePos(in int2 sector, in int3 pos, int2 sectorSize) {
+    public static int3 InternalToPlanePos(in int2 sector, in int3 pos, in int2 sectorSize) {
         return new int3(
             pos.x + sector.x * sectorSize.x,
             pos.y - sectorSize.y / 2,

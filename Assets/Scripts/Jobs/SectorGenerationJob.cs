@@ -13,20 +13,12 @@ public struct SectorGenerationJob : IJobParallelFor {
 
     public void Execute(int index) {
         float pointHeight = 0f;
-        var internalPos = idToPos(index);
+        var internalPos = Sector.IdToPos(index, sectorSize);
         var planePos = Coordinates.InternalToPlanePos(sectorOffset, internalPos, sectorSize);
         for (int i = 0; i < noiseMaps.Length; i++) {
             float sample = noiseMaps[i].SampleJob(planePos.xz);
             pointHeight += sample;
         }
         generatedBlocks[index] = planePos.y < pointHeight ? BlockType.Grass : BlockType.Empty;
-    }
-
-    public int3 idToPos(int index) {
-        return new int3(
-            index / (sectorSize.x * sectorSize.y),
-            index % sectorSize.y,
-            (index / sectorSize.y) % sectorSize.x
-        );
     }
 }

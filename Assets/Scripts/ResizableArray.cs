@@ -28,4 +28,9 @@ public class ResizableArray<T> {
     public void Clear() {
         _count = 0;
     }
+
+    public void SetArray(T[] array) {
+        _count = array.Length;
+        _array = array;
+    }
 }
