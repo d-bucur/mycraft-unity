@@ -94,8 +94,6 @@ public class WorldGenerator : MonoBehaviour {
         sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
         sector.StartGeneratingGrid();
 
-        int totalBlocks = Sector.GetTotalBlocks();
-        int batchCount = totalBlocks / JobsUtility.JobWorkerCount;
         // TODO optimization: only do sampling job once for a single x,y point
         var job = new SectorGenerationJob {
             noiseMaps = _noiseMapsNative,
@@ -103,11 +101,12 @@ public class WorldGenerator : MonoBehaviour {
             sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
             sectorOffset = pos.ToVector2Int(),
         };
-        var handle = job.Schedule(totalBlocks, totalBlocks);
+        var handle = job.Schedule();
         sector.writeHandle = handle;
         _activeSectors.Add(pos, sector);
     }
 
+    // Deprecated
     private void GenerateSectorOld(Sector sector, in Vector2Int pos) {
         sector.offset = pos;
         sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;

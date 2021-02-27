@@ -33,4 +33,9 @@ public class JobCompatibility  {
             Assert.AreEqual(itPos.z, jobPos.z);
         }
     }
+
+    [Test]
+    public void GridGenerationIsCompatible() {
+        Assert.Fail();
+    }
 }
