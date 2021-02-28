@@ -137,20 +137,20 @@ public class Sector : MonoBehaviour {
             sector.StartGeneratingMesh();
         }
         JobHandle.ScheduleBatchedJobs();
-        var meshesToBake = new NativeArray<int>(sectorsToGenerate.Count, Allocator.TempJob);
+        var bakeJobs = new List<JobHandle>(sectorsToGenerate.Count);
         for (int i = 0; i < sectorsToGenerate.Count; i++) {
             var sector = sectorsToGenerate[i];
             sector.writeHandle.Complete();
-            meshesToBake[i] = sector.PrepareCollisionMesh().GetInstanceID();
+            var meshId = sector.PrepareCollisionMesh().GetInstanceID();
+            var job = new MeshBakeJob {meshId = meshId}.Schedule();
+            bakeJobs.Add(job);
         }
-        // TODO MED launch bake jobs independently?
-        var bakeJob = new MeshBakeJob {meshIds = meshesToBake}
-            .Schedule(meshesToBake.Length, 1);
         JobHandle.ScheduleBatchedJobs();
         foreach (var s in sectorsToGenerate)
             s.AssignRenderMesh();
-        bakeJob.Complete();
-        foreach (var s in sectorsToGenerate) {
+        for (var i = 0; i < sectorsToGenerate.Count; i++) {
+            bakeJobs[i].Complete();
+            var s = sectorsToGenerate[i];
             s.AssignCollisionMesh();
         }
     }

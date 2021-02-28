@@ -97,7 +97,6 @@ public class WorldGenerator : MonoBehaviour {
             thresholds = groundTypeThresholds,
             worldChanges = _worldChanges,
         };
-        // TODO HIGH apply _worldChanges when completed
         var handle = job.Schedule();
         sector.writeHandle = handle;
         _activeSectors.Add(pos, sector);
