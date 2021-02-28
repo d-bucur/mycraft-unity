@@ -23,7 +23,7 @@ public class Builder : MonoBehaviour {
             return;
         CheckConstruct(hit);
         CheckDestroy(hit);
-        // TODO bug: when changing blocks on the edge the sweep only updates faces in one sector instead of both
+        // TODO BUG when changing blocks on the edge the sweep only updates faces in one sector instead of both
     }
 
     private void CheckDestroy(RaycastHit hit) {

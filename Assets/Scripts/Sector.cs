@@ -89,7 +89,7 @@ public class Sector : MonoBehaviour {
             blocks = blocksNative,
             neighbors = neighbors,
         };
-        // TODO bug sometimes is triggered before last one finished
+        // TODO BUG sometimes is triggered before last one finished
         meshJobHandle = job.Schedule();
     }
 

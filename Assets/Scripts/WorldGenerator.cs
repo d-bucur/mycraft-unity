@@ -99,7 +99,7 @@ public class WorldGenerator : MonoBehaviour {
             worldChanges = _worldChanges,
             neighbors = sector.neighbors,
         };
-        // TODO bug sometimes is triggered before last one finished
+        // TODO BUG sometimes is triggered before last one finished
         var handle = job.Schedule();
         sector.blocksJobHandle = handle;
         // TODO probably should not add until generation is done
@@ -195,7 +195,6 @@ public class WorldGenerator : MonoBehaviour {
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
         _worldChanges.AddOrReplace(planePos.ToInt3(), BlockType.Grass);
         sector.RenderSectorParallel();
-        // TODO should only add new meshes instead of redrawing the whole sector
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
@@ -206,6 +205,5 @@ public class WorldGenerator : MonoBehaviour {
         sector.AddBlock(internalPos, blockType);
         _worldChanges.AddOrReplace(planePos.ToInt3(), blockType);
         sector.RenderSectorParallel();
-        // TODO should only add new meshes instead of redrawing the whole sector
     }
 }

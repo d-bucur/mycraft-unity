@@ -45,9 +45,9 @@ public struct SectorGenerationJob : IJob {
         float typeNoiseSample = typeNoise.Sample(planeXZ.xz);
         for (int y = 0; y < sectorSize.y; y++) {
             var internalPos = new int3(x, y, z);
-            // TODO can be optimized by adding y+1 to last position
+            // TODO PERF can be optimized by adding y+1 to last position
             var planePos = Coordinates.InternalToPlanePos(sectorOffset, internalPos, sectorSize);
-            // TODO bug typenoise is sometimes wrong on border
+            // TODO BUG typenoise is sometimes wrong on border
             var blockType = GetBlockTypeWithDiffs(planePos, groundHeight, typeNoiseSample);
             neighbors[internalPos] = blockType;
         }

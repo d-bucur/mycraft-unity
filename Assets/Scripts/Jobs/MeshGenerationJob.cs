@@ -11,9 +11,9 @@ public struct MeshGenerationJob : IJob {
     public MeshHelper waterMesh;
     [ReadOnly] public int3 sectorSize;
     [ReadOnly] public NativeArray<BlockType> blocks;
-    [ReadOnly] public NativeHashMap<int3, BlockType> neighbors;  // TODO deallocate on finish
+    [ReadOnly] public NativeHashMap<int3, BlockType> neighbors;  // TODO deallocate on finish, when double generation bug is resolved
 
-    // TODO test if faster with math structs
+    // TODO PERF test if faster with math structs
 
     public void Execute() {
         SweepMeshFaces();
@@ -83,7 +83,7 @@ public struct MeshGenerationJob : IJob {
         SweepData last = default;
 
         // Sweep up
-        // TODO is it faster to sweep by index instead of position?
+        // TODO PERF is it faster to sweep by index instead of position?
         for (var x = 0; x < sectorSize.x; x++) {
             for (var z = 0; z < sectorSize.x; z++) {
                 for (var y = 0; y < sectorSize.y; y++) {
@@ -209,7 +209,7 @@ public struct MeshGenerationJob : IJob {
         mesh.uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta + _uvDelta));
         mesh.uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta));
         
-        // TODO Try with MeshTopology.Quads
+        // TODO PERF Try with MeshTopology.Quads
         mesh.triangles.Add(i);
         mesh.triangles.Add(i+1);
         mesh.triangles.Add(i+3);
