@@ -7,11 +7,11 @@ public struct MeshHelper {
     public NativeList<int> triangles;
     public NativeList<Vector3> normals;
 
-    public MeshHelper(int predictedVertices) {
-        vertices = new NativeList<Vector3>(predictedVertices, Allocator.Persistent);
-        uvs = new NativeList<Vector2>(predictedVertices, Allocator.Persistent);
-        triangles = new NativeList<int>(predictedVertices, Allocator.Persistent);
-        normals = new NativeList<Vector3>(predictedVertices, Allocator.Persistent);
+    public MeshHelper(int avgFaces) {
+        vertices = new NativeList<Vector3>(4*avgFaces, Allocator.Persistent);
+        uvs = new NativeList<Vector2>(4*avgFaces, Allocator.Persistent);
+        triangles = new NativeList<int>(6*avgFaces, Allocator.Persistent);
+        normals = new NativeList<Vector3>(4*avgFaces, Allocator.Persistent);
     }
 
     public void Clear() {

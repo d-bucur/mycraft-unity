@@ -30,7 +30,7 @@ public class Sector : MonoBehaviour {
     }
 
     public void Init() {
-        var averageFaces = sectorSize * sectorSize * 2;
+        var averageFaces = sectorSize * sectorSize;
         for (int i = 0; i < _meshHelpers.Length; i++) {
             _meshHelpers[i] = new MeshHelper(averageFaces);
         }
