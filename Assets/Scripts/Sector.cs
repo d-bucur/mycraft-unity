@@ -9,7 +9,7 @@ using UnityEngine.Profiling;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshCollider))]
-public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
+public class Sector : MonoBehaviour {
     public Vector2Int offset;
     
     private readonly MeshHelper[] _meshHelpers = new MeshHelper[2];
@@ -68,19 +68,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         );
     }
 
-    // TODO remove
-    public IEnumerator<Vector3Int> GetEnumerator() {
-        for (var x = 0; x < sectorSize; x++)
-            for (var z = 0; z < sectorSize; z++)
-                for (var y = 0; y < sectorSizeHeight; y++)
-                    yield return new Vector3Int(x, y, z);
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() {
-        return GetEnumerator();
-    }
-
     public void StartGeneratingMesh() {
+        // TODO maybe not the best place for this?
         if (!_isGridGenerated) {
             CopyJobData(blocksNative);
             FinishGeneratingGrid();
@@ -92,7 +81,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             helper.Clear();
         
         var job = new MeshGenerationJob {
-            mesh = _meshHelpers[0],
+            solidMesh = _meshHelpers[0],
+            waterMesh = _meshHelpers[1],
             sectorSize = new int2(sectorSize,sectorSizeHeight),
             blocks = blocksNative,
         };
@@ -110,7 +100,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
 
     private Mesh PrepareCollisionMesh() {
         Profiler.BeginSample("Generating collision mesh");
-        // TODO should maybe use a different mesh?
+        // TODO use a different mesh?
         _collisionMesh = _meshHelpers[0].GetRenderMesh();
         Profiler.EndSample();
         return _collisionMesh;
@@ -159,7 +149,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             sector.writeHandle.Complete();
             meshesToBake[i] = sector.PrepareCollisionMesh().GetInstanceID();
         }
-        // TODO maybe launch bake jobs independently?
+        // TODO launch bake jobs independently?
         var bakeJob = new MeshBakeJob {meshIds = meshesToBake}
             .Schedule(meshesToBake.Length, 1);
         JobHandle.ScheduleBatchedJobs();

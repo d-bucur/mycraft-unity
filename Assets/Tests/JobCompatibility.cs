@@ -20,19 +20,19 @@ public class JobCompatibility  {
         }
     }
 
-    [Test]
-    public void SectorIdsAreCompatible() {
-        var sectorSize = new int2(10, 20);
-        Sector.SetSizes(10, 20);
-        var sector = GameObject.CreatePrimitive(PrimitiveType.Cube).AddComponent<Sector>();
-        foreach (var itPos in sector) {
-            var idx = Sector.GetId(itPos);
-            var jobPos = Sector.IdToPos(idx, sectorSize);
-            Assert.AreEqual(itPos.x, jobPos.x);
-            Assert.AreEqual(itPos.y, jobPos.y);
-            Assert.AreEqual(itPos.z, jobPos.z);
-        }
-    }
+    // [Test]
+    // public void SectorIdsAreCompatible() {
+    //     var sectorSize = new int2(10, 20);
+    //     Sector.SetSizes(10, 20);
+    //     var sector = GameObject.CreatePrimitive(PrimitiveType.Cube).AddComponent<Sector>();
+    //     foreach (var itPos in sector) {
+    //         var idx = Sector.GetId(itPos);
+    //         var jobPos = Sector.IdToPos(idx, sectorSize);
+    //         Assert.AreEqual(itPos.x, jobPos.x);
+    //         Assert.AreEqual(itPos.y, jobPos.y);
+    //         Assert.AreEqual(itPos.z, jobPos.z);
+    //     }
+    // }
 
     [Test]
     public void GridGenerationIsCompatible() {

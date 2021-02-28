@@ -6,10 +6,10 @@ using UnityEngine;
 
 [BurstCompile]
 public struct MeshGenerationJob : IJob {
-    public MeshHelper mesh;
+    public MeshHelper solidMesh;
+    public MeshHelper waterMesh;
     [ReadOnly] public int2 sectorSize;
     [ReadOnly] public NativeArray<BlockType> blocks;
-    // TODO add another mesh for transparent 
     // TODO test if faster with math structs
 
     public void Execute() {
@@ -111,14 +111,14 @@ public struct MeshGenerationJob : IJob {
         if (currentGroup != previous.group) {
             // draw solid surface from solid into empty
             if (currentGroup == BlockGroup.Transparent)
-                AddFace(previous.pos, currentDirection, previous.type, 0);
+                AddFace(previous.pos, currentDirection, previous.type, ref solidMesh);
             else
-                AddFace(currentPos, previousDirection, currentType, 0);
+                AddFace(currentPos, previousDirection, currentType, ref solidMesh);
         }
         else if (currentType == BlockType.Empty && previous.type == BlockType.Water) {
             // draw water surface from both sides
-            // AddFace(previous.pos, currentDirection, previous.type, 1);
-            // AddFace(currentPos, previousDirection, previous.type, 1);
+            AddFace(previous.pos, currentDirection, previous.type, ref waterMesh);
+            AddFace(currentPos, previousDirection, previous.type, ref waterMesh);
         }
         return new SweepData {
             pos = currentPos,
@@ -132,33 +132,33 @@ public struct MeshGenerationJob : IJob {
         return blocks[id];
     }
 
-    private void AddFace(in Vector3 center, Direction dir, BlockType type, int meshId) {
+    private void AddFace(in Vector3 center, Direction dir, BlockType type, ref MeshHelper mesh) {
         var uvPos = (int)type;
         switch (dir) {
             case Direction.UP:
-                AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos, meshId, _nu);
+                AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos, ref mesh, _nu);
                 break;
             case Direction.DOWN:
-                AddFaceInternal(_rdf, _ldf, _ldb, _rdb, center, 2, uvPos, meshId, _nd);
+                AddFaceInternal(_rdf, _ldf, _ldb, _rdb, center, 2, uvPos, ref mesh, _nd);
                 break;
             case Direction.RIGHT:
-                AddFaceInternal(_rdb, _rub, _ruf, _rdf, center, 1, uvPos, meshId, _nr);
+                AddFaceInternal(_rdb, _rub, _ruf, _rdf, center, 1, uvPos, ref mesh, _nr);
                 break;
             case Direction.LEFT:
-                AddFaceInternal(_ldf, _luf, _lub, _ldb, center, 1, uvPos, meshId, _nl);
+                AddFaceInternal(_ldf, _luf, _lub, _ldb, center, 1, uvPos, ref mesh, _nl);
                 break;
             case Direction.FORWARD:
-                AddFaceInternal(_rdf, _ruf, _luf, _ldf, center, 1, uvPos, meshId, _nf);
+                AddFaceInternal(_rdf, _ruf, _luf, _ldf, center, 1, uvPos, ref mesh, _nf);
                 break;
             case Direction.BACK:
-                AddFaceInternal(_ldb, _lub, _rub, _rdb, center, 1, uvPos, meshId, _nb);
+                AddFaceInternal(_ldb, _lub, _rub, _rdb, center, 1, uvPos, ref mesh, _nb);
                 break;
         }
     }
     
     private const float _uvDelta = 1f / _uvMapSize;
     private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center,
-        int uvX, int uvY, int meshId, in Vector3 normal) {
+        int uvX, int uvY, ref MeshHelper mesh, in Vector3 normal) {
         
         var i = mesh.vertices.Length;
         mesh.vertices.Add(center + a);

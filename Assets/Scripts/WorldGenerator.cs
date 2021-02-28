@@ -17,9 +17,7 @@ public class WorldGenerator : MonoBehaviour {
     public NoiseMap typeNoise;
     public float regenTimeBudget;
     public Sector sectorTemplate;
-    public int waterTreshold;
-    public int snowTreshold;
-    public int sandTreshold;
+    public GroundTypeThresholds groundTypeThresholds;
     public RandomizationType randomizationType; 
     public int seed;
     public int frameRateLimit;
@@ -97,53 +95,12 @@ public class WorldGenerator : MonoBehaviour {
             generatedBlocks = sector.blocksNative,
             sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
             sectorOffset = pos.ToVector2Int(),
+            thresholds = groundTypeThresholds,
         };
+        // TODO apply _worldChanges when completed
         var handle = job.Schedule();
         sector.writeHandle = handle;
         _activeSectors.Add(pos, sector);
-    }
-
-    // Deprecated
-    private void GenerateSectorOld(Sector sector, in Vector2Int pos) {
-        sector.offset = pos;
-        sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
-
-        int lastX = Int32.MaxValue, lastZ = Int32.MaxValue;
-        int groundHeight = 0;
-        int typeNoiseSample = 0;
-        foreach (var blockPos in sector) {
-            var planePos = Coordinates.InternalToPlanePos(sector.offset, blockPos);
-            if (planePos.z != lastZ || planePos.x != lastX) {
-                var gridPos = new Vector2Int(planePos.x, planePos.z);
-                groundHeight = (int) SampleMaps(gridPos);
-                typeNoiseSample = (int) typeNoise.Sample(gridPos);
-                lastZ = planePos.z;
-                lastX = planePos.x;
-            }
-            BlockType blockType = _worldChanges.TryGetValue(planePos, out var diffType) ? 
-                diffType : 
-                GetBlockType(planePos, groundHeight, typeNoiseSample);
-            sector.AddBlock(blockPos, blockType);
-        }
-        sector.FinishGeneratingGrid();
-        _activeSectors.Add(pos, sector);
-    }
-
-    private BlockType GetBlockType(Vector3Int worldPos, int groundHeight, int noise = 0) {
-        BlockType blockType;
-        if (worldPos.y > groundHeight) {
-            blockType = worldPos.y < waterTreshold ? BlockType.Water : BlockType.Empty;
-        }
-        else {
-            if (worldPos.y + noise > snowTreshold)
-                blockType = BlockType.Snow;
-            else if (worldPos.y + noise < sandTreshold)
-                blockType = BlockType.Sand;
-            else
-                blockType = BlockType.Grass;
-        }
-
-        return blockType;
     }
 
     private float SampleMaps(in Vector2Int pos) {
@@ -248,7 +205,7 @@ public class WorldGenerator : MonoBehaviour {
         var sector = GetSector(sectorPos);
         // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
-        var blockType = planePos.y < waterTreshold ? BlockType.Water : BlockType.Empty;
+        var blockType = planePos.y < groundTypeThresholds.water ? BlockType.Water : BlockType.Empty;
         sector.AddBlock(internalPos, blockType);
         _worldChanges.Add(planePos, blockType);
         // TODO should only add new meshes instead of redrawing the whole sector
