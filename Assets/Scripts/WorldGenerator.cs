@@ -13,7 +13,7 @@ public class WorldGenerator : MonoBehaviour {
     public int sectorSizeHeight;
     public List<NoiseMap> noiseMaps;
     private NativeArray<NoiseMap> _noiseMapsNative;
-    public NoiseMap typeNoise;  // TODO use type noise again
+    public NoiseMap typeNoise;
     public float regenTimeBudget;
     public Sector sectorTemplate;
     public GroundTypeThresholds groundTypeThresholds;
@@ -91,6 +91,7 @@ public class WorldGenerator : MonoBehaviour {
         sector.StartGeneratingGrid();
         var job = new SectorGenerationJob {
             noiseMaps = _noiseMapsNative,
+            typeNoise = typeNoise,
             generatedBlocks = sector.blocksNative,
             sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
             sectorOffset = pos.ToVector2Int(),

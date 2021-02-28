@@ -7,6 +7,7 @@ using UnityEngine;
 [BurstCompile]
 public struct SectorGenerationJob : IJob {
     [ReadOnly] public NativeArray<NoiseMap> noiseMaps;
+    [ReadOnly] public NoiseMap typeNoise;
     [ReadOnly] public int2 sectorSize;
     [ReadOnly] public int2 sectorOffset;
     [ReadOnly] public GroundTypeThresholds thresholds;
@@ -26,11 +27,11 @@ public struct SectorGenerationJob : IJob {
                 }
             }
             generatedBlocks[index] = worldChanges.TryGetValue(planePos, out var type) ? 
-                type : GetBlockType(planePos, groundHeight);
+                type : GetBlockType(planePos, groundHeight, typeNoise.Sample(planePos.xz));
         }
     }
 
-    private BlockType GetBlockType(int3 planePos, float groundHeight, int noise = 0) {
+    private BlockType GetBlockType(int3 planePos, float groundHeight, float noise = 0f) {
         BlockType blockType;
         if (planePos.y > groundHeight) {
             blockType = planePos.y < thresholds.water ? BlockType.Water : BlockType.Empty;
