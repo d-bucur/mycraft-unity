@@ -8,16 +8,8 @@ public struct NoiseMap {
     public float frequency;
     public float power;
     public float2 offset;
-
-    public float Sample(Vector2Int pos) {
-        var px = pos.x * frequency + offset.x;
-        var py = pos.y * frequency + offset.y;
-        var z = Mathf.PerlinNoise(px, py) - 0.5f;
-        z = Mathf.Pow(z, power);
-        return z * amplitude;
-    }
     
-    public float SampleJob(int2 pos) {
+    public float Sample(int2 pos) {
         var p =(float2)pos * frequency + offset;
         // var z = noise.cnoise(p);
         var z = Mathf.PerlinNoise(p.x, p.y) - 0.5f;

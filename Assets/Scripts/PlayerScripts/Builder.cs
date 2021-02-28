@@ -1,3 +1,4 @@
+using Unity.Mathematics;
 using UnityEngine;
 
 public class Builder : MonoBehaviour {
@@ -9,8 +10,8 @@ public class Builder : MonoBehaviour {
 
     private void Awake() {
         _layerMask = LayerMask.GetMask("World");
-        var startPosition = WorldGenerator.Instance.GetHeightAt(new Vector2Int(0, 0));
-        transform.position = startPosition + new Vector3(0, 50, 0);
+        var startPosition = WorldGenerator.Instance.GetHeightAt(new int2(0, 0));
+        transform.position = startPosition + new Vector3(0, 15, 0);
     }
 
     void Update() {

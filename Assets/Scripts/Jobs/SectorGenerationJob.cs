@@ -20,7 +20,7 @@ public struct SectorGenerationJob : IJob {
             if (index % sectorSize.y == 0) {
                 groundHeight = 0f;
                 for (int i = 0; i < noiseMaps.Length; i++) {
-                    float sample = noiseMaps[i].SampleJob(planePos.xz);
+                    float sample = noiseMaps[i].Sample(planePos.xz);
                     groundHeight += sample;
                 }
             }

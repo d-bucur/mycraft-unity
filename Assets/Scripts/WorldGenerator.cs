@@ -103,14 +103,14 @@ public class WorldGenerator : MonoBehaviour {
         _activeSectors.Add(pos, sector);
     }
 
-    private float SampleMaps(in Vector2Int pos) {
+    private float SampleMaps(in int2 pos) {
         var res = 0.0f;
         for (var i = 0; i < noiseMaps.Count; i++)
             res += noiseMaps[i].Sample(pos);
         return res;
     }
 
-    public Vector3 GetHeightAt(in Vector2Int pos) {
+    public Vector3 GetHeightAt(in int2 pos) {
         var y = SampleMaps(pos) + sectorSizeHeight / 2.0f;
         return new Vector3(pos.x, y, pos.y);
     }
