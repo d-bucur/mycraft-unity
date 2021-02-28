@@ -10,6 +10,7 @@ public struct SectorGenerationJob : IJob {
     [ReadOnly] public int2 sectorSize;
     [ReadOnly] public int2 sectorOffset;
     [ReadOnly] public GroundTypeThresholds thresholds;
+    [ReadOnly] public NativeHashMap<int3, BlockType> worldChanges;
     public NativeArray<BlockType> generatedBlocks;
 
     public void Execute() {
@@ -24,7 +25,8 @@ public struct SectorGenerationJob : IJob {
                     groundHeight += sample;
                 }
             }
-            generatedBlocks[index] = GetBlockType(planePos, groundHeight);
+            generatedBlocks[index] = worldChanges.TryGetValue(planePos, out var type) ? 
+                type : GetBlockType(planePos, groundHeight);
         }
     }
 

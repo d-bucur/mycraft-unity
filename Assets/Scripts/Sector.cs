@@ -11,8 +11,6 @@ public class Sector : MonoBehaviour {
     public Vector2Int offset;
     
     private readonly MeshHelper[] _meshHelpers = new MeshHelper[2];
-    
-    private BlockType[] _blocks;
     private bool _isMeshGenerated = false;
     private bool _isGridGenerated = false;
     public bool IsGridGenerated => _isGridGenerated;
@@ -32,7 +30,6 @@ public class Sector : MonoBehaviour {
     }
 
     public void Init() {
-        _blocks = new BlockType[sectorSize * sectorSize * sectorSizeHeight];
         var averageFaces = sectorSize * sectorSize * 2;
         for (int i = 0; i < _meshHelpers.Length; i++) {
             _meshHelpers[i] = new MeshHelper(averageFaces);
@@ -41,7 +38,7 @@ public class Sector : MonoBehaviour {
     }
 
     public void AddBlock(in Vector3Int pos, BlockType blockType) {
-        _blocks[GetId(pos)] = blockType;
+        blocksNative[GetId(pos)] = blockType;
     }
 
     public void FinishGeneratingGrid() {
@@ -68,7 +65,6 @@ public class Sector : MonoBehaviour {
     public void StartGeneratingMesh() {
         // TODO maybe not the best place for this?
         if (!_isGridGenerated) {
-            CopyJobData(blocksNative);
             FinishGeneratingGrid();
         }
         if (_isGridGenerated && _isMeshGenerated)
@@ -118,10 +114,6 @@ public class Sector : MonoBehaviour {
         return sectorSize * sectorSize * sectorSizeHeight;
     }
 
-    private void CopyJobData(NativeArray<BlockType> native) {
-        native.CopyTo(_blocks);
-    }
-
     public void StartGeneratingGrid() {
         _isGridGenerated = false;
     }
@@ -133,7 +125,12 @@ public class Sector : MonoBehaviour {
         }
     }
 
-    public static void GenerateSectorsParallel(List<Sector> sectorsToGenerate) {
+    public void RenderSectorParallel() {
+        FinishGeneratingGrid(); // TODO sequence of calls is confusing, refactor
+        RenderSectorsParallel(new List<Sector> {this});
+    }
+
+    public static void RenderSectorsParallel(List<Sector> sectorsToGenerate) {
         JobHandle.ScheduleBatchedJobs();
         foreach (var sector in sectorsToGenerate) {
             sector.writeHandle.Complete();

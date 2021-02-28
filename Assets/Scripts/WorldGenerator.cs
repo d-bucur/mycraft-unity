@@ -7,21 +7,20 @@ using Unity.Mathematics;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-[RequireComponent(typeof(WorldChanges))]
 public class WorldGenerator : MonoBehaviour {
     public int viewRange;
     public int sectorSize;
     public int sectorSizeHeight;
     public List<NoiseMap> noiseMaps;
     private NativeArray<NoiseMap> _noiseMapsNative;
-    public NoiseMap typeNoise;
+    public NoiseMap typeNoise;  // TODO use type noise again
     public float regenTimeBudget;
     public Sector sectorTemplate;
     public GroundTypeThresholds groundTypeThresholds;
     public RandomizationType randomizationType; 
     public int seed;
     public int frameRateLimit;
-    private WorldChanges _worldChanges;
+    private NativeHashMap<int3, BlockType> _worldChanges;
     
     public enum RandomizationType {
         NoRandom,
@@ -37,7 +36,6 @@ public class WorldGenerator : MonoBehaviour {
 
     private void Awake() {
         Instance = this;
-        _worldChanges = GetComponent<WorldChanges>();
         Sector.SetSizes(sectorSize, sectorSizeHeight);
         PrepareNativeMaps();
         GenerateRandomness();
@@ -50,10 +48,12 @@ public class WorldGenerator : MonoBehaviour {
         for (int i = 0; i < noiseMaps.Count; i++) {
             _noiseMapsNative[i] = noiseMaps[i];
         }
+        _worldChanges = new NativeHashMap<int3, BlockType>(100, Allocator.Persistent);
     }
 
     private void OnDestroy() {
         _noiseMapsNative.Dispose();
+        _worldChanges.Dispose();
     }
 
     private void GenerateRandomness() { 
@@ -83,7 +83,7 @@ public class WorldGenerator : MonoBehaviour {
                 sectors.Add(GetOrGenerateSector(sectorPos));
             }
         }
-        Sector.GenerateSectorsParallel(sectors);
+        Sector.RenderSectorsParallel(sectors);
     }
 
     private void GenerateSector(Sector sector, in Vector2Int pos) {
@@ -96,6 +96,7 @@ public class WorldGenerator : MonoBehaviour {
             sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
             sectorOffset = pos.ToVector2Int(),
             thresholds = groundTypeThresholds,
+            worldChanges = _worldChanges,
         };
         // TODO HIGH apply _worldChanges when completed
         var handle = job.Schedule();
@@ -157,19 +158,17 @@ public class WorldGenerator : MonoBehaviour {
             var newPos = _sectorsToRender.Dequeue();
             sectorsToGenerate.Add(GetOrGenerateSector(newPos));
         }
-        Sector.GenerateSectorsParallel(sectorsToGenerate);
+        Sector.RenderSectorsParallel(sectorsToGenerate);
         // TODO repeat if frame budget available
     }
 
     private Sector GetOrGenerateSector(Vector2Int sectorPos) {
         Sector sector;
         if (_activeSectors.TryGetValue(sectorPos, out sector)) {
-            if (sector.IsGridGenerated) {
+            if (sector.IsGridGenerated)
                 return sector;
-            }
-            else {
+            else
                 throw new InvalidProgramException("Sector in _active sectors that has not been generated");
-            }
         }
         if (_sectorsReleased.Count > 0) {
             sector = _sectorsReleased.Dequeue();
@@ -188,28 +187,23 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     public void ConstructBlock(Vector3Int worldPos) {
-        // TODO HIGH update to new mesh generation
         var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
         var sector = GetSector(sectorPos);
         sector.AddBlock(internalPos, BlockType.Grass);
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
-        _worldChanges.Add(planePos, BlockType.Grass);
+        _worldChanges.AddOrReplace(planePos.ToInt3(), BlockType.Grass);
+        sector.RenderSectorParallel();
         // TODO should only add new meshes instead of redrawing the whole sector
-        sector.FinishGeneratingGrid();
-        sector.StartGeneratingMesh();
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
-        // TODO HIGH update to new mesh generation
         var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
         var sector = GetSector(sectorPos);
-        // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
         var blockType = planePos.y < groundTypeThresholds.water ? BlockType.Water : BlockType.Empty;
         sector.AddBlock(internalPos, blockType);
-        _worldChanges.Add(planePos, blockType);
+        _worldChanges.AddOrReplace(planePos.ToInt3(), blockType);
+        sector.RenderSectorParallel();
         // TODO should only add new meshes instead of redrawing the whole sector
-        sector.FinishGeneratingGrid();
-        sector.StartGeneratingMesh();
     }
 }
