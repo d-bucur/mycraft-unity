@@ -37,6 +37,13 @@ public struct MeshGenerationJob : IJob {
     private static readonly Vector3 _ldb = new Vector3(-_s, -_s, -_s);
     private static readonly Vector3 _ldf = new Vector3(-_s, -_s, _s);
     private static readonly Vector3 _rdf = new Vector3(_s, -_s, _s);
+    
+    private static readonly Vector3 _nu = new Vector3(0, 1, 0);
+    private static readonly Vector3 _nd = new Vector3(0, -1, 0);
+    private static readonly Vector3 _nf = new Vector3(0, 0, 1);
+    private static readonly Vector3 _nb = new Vector3(0, 0, -1);
+    private static readonly Vector3 _nr = new Vector3(1, 0, 0);
+    private static readonly Vector3 _nl = new Vector3(-1, 0, 0);
 
     private void SweepMeshFaces() {
         bool hasLast = false;
@@ -129,29 +136,29 @@ public struct MeshGenerationJob : IJob {
         var uvPos = (int)type;
         switch (dir) {
             case Direction.UP:
-                AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos, meshId);
+                AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos, meshId, _nu);
                 break;
             case Direction.DOWN:
-                AddFaceInternal(_rdf, _ldf, _ldb, _rdb, center, 2, uvPos, meshId);
+                AddFaceInternal(_rdf, _ldf, _ldb, _rdb, center, 2, uvPos, meshId, _nd);
                 break;
             case Direction.RIGHT:
-                AddFaceInternal(_rdb, _rub, _ruf, _rdf, center, 1, uvPos, meshId);
+                AddFaceInternal(_rdb, _rub, _ruf, _rdf, center, 1, uvPos, meshId, _nr);
                 break;
             case Direction.LEFT:
-                AddFaceInternal(_ldf, _luf, _lub, _ldb, center, 1, uvPos, meshId);
+                AddFaceInternal(_ldf, _luf, _lub, _ldb, center, 1, uvPos, meshId, _nl);
                 break;
             case Direction.FORWARD:
-                AddFaceInternal(_rdf, _ruf, _luf, _ldf, center, 1, uvPos, meshId);
+                AddFaceInternal(_rdf, _ruf, _luf, _ldf, center, 1, uvPos, meshId, _nf);
                 break;
             case Direction.BACK:
-                AddFaceInternal(_ldb, _lub, _rub, _rdb, center, 1, uvPos, meshId);
+                AddFaceInternal(_ldb, _lub, _rub, _rdb, center, 1, uvPos, meshId, _nb);
                 break;
         }
     }
     
     private const float _uvDelta = 1f / _uvMapSize;
     private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center,
-        int uvX, int uvY, int meshId) {
+        int uvX, int uvY, int meshId, in Vector3 normal) {
         
         var i = mesh.vertices.Length;
         mesh.vertices.Add(center + a);
@@ -159,11 +166,17 @@ public struct MeshGenerationJob : IJob {
         mesh.vertices.Add(center + c);
         mesh.vertices.Add(center + d);
         
+        mesh.normals.Add(normal);
+        mesh.normals.Add(normal);
+        mesh.normals.Add(normal);
+        mesh.normals.Add(normal);
+        
         mesh.uvs.Add(new Vector2(uvX * _uvDelta, uvY * _uvDelta));
         mesh.uvs.Add(new Vector2(uvX * _uvDelta, uvY * _uvDelta + _uvDelta));
         mesh.uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta + _uvDelta));
         mesh.uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta));
         
+        // TODO Try with MeshTopology.Quads
         mesh.triangles.Add(i);
         mesh.triangles.Add(i+1);
         mesh.triangles.Add(i+3);
