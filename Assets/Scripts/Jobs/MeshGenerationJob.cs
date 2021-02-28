@@ -10,13 +10,15 @@ public struct MeshGenerationJob : IJob {
     public MeshHelper waterMesh;
     [ReadOnly] public int3 sectorSize;
     [ReadOnly] public NativeArray<BlockType> blocks;
+    [ReadOnly] public NativeHashMap<int3, BlockType> neighbors;  // TODO deallocate on finish
+
     // TODO test if faster with math structs
 
     public void Execute() {
         SweepMeshFaces();
-        // TODO HIGH need to sweep border of neighboring sectors
+        SweepBorderFaces();
     }
-    
+
     private struct SweepData {
         public Vector3Int pos;
         public BlockType type;
@@ -45,7 +47,36 @@ public struct MeshGenerationJob : IJob {
     private static readonly Vector3 _nb = new Vector3(0, 0, -1);
     private static readonly Vector3 _nr = new Vector3(1, 0, 0);
     private static readonly Vector3 _nl = new Vector3(-1, 0, 0);
-
+    
+    private void SweepBorderFaces() {
+        for (var z = 0; z < sectorSize.x; z++) {
+            for (var y = 0; y < sectorSize.y; y++) {
+                var lastPos = new int3(-1, y, z);
+                var type = neighbors[lastPos];
+                var last = new SweepData {
+                    pos = lastPos.ToVector3Int(),
+                    type = type,
+                    group = Block.GetGroup(type)
+                };
+                var currentPos = new Vector3Int(0, y, z);
+                ConstructFace(last, currentPos, Direction.RIGHT, Direction.LEFT);
+            }
+        }
+        for (var x = 0; x < sectorSize.x; x++) {
+            for (var y = 0; y < sectorSize.y; y++) {
+                var lastPos = new int3(x, y, -1);
+                var type = neighbors[lastPos];
+                var last = new SweepData {
+                    pos = lastPos.ToVector3Int(),
+                    type = type,
+                    group = Block.GetGroup(type)
+                };
+                var currentPos = new Vector3Int(x, y, 0);
+                ConstructFace(last, currentPos, Direction.FORWARD, Direction.BACK);
+            }
+        }
+    }
+    
     private void SweepMeshFaces() {
         bool hasLast = false;
         SweepData last = default;
@@ -88,8 +119,8 @@ public struct MeshGenerationJob : IJob {
         }
 
         // Sweep right
-        for (var y = 0; y < sectorSize.y; y++) {
-            for (var z = 0; z < sectorSize.x; z++) {
+        for (var z = 0; z < sectorSize.x; z++) {
+            for (var y = 0; y < sectorSize.y; y++) {
                 for (var x = 0; x < sectorSize.x; x++) {
                     var currentPos = new Vector3Int(x, y, z);
                     if (hasLast)

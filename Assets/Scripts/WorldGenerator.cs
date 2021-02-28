@@ -97,9 +97,12 @@ public class WorldGenerator : MonoBehaviour {
             sectorOffset = pos.ToVector2Int(),
             thresholds = groundTypeThresholds,
             worldChanges = _worldChanges,
+            neighbors = sector.neighbors,
         };
+        // TODO bug sometimes is triggered before last one finished
         var handle = job.Schedule();
-        sector.writeHandle = handle;
+        sector.blocksJobHandle = handle;
+        // TODO probably should not add until generation is done
         _activeSectors.Add(pos, sector);
     }
 

@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
@@ -19,8 +20,10 @@ public class Sector : MonoBehaviour {
     public static int sectorSizeHeight;
     private static int sectorSizeMult;
     
-    public JobHandle writeHandle;
+    public JobHandle blocksJobHandle;
+    public JobHandle meshJobHandle;
     public NativeArray<BlockType> blocksNative;
+    public NativeHashMap<int3, BlockType> neighbors;
     private Mesh _collisionMesh;
 
     public static void SetSizes(int sectorSize, int sectorSizeHeight) {
@@ -35,25 +38,31 @@ public class Sector : MonoBehaviour {
             _meshHelpers[i] = new MeshHelper(averageFaces);
         }
         blocksNative = new NativeArray<BlockType>(GetTotalBlocks(), Allocator.Persistent);
+        neighbors = new NativeHashMap<int3, BlockType>(sectorSize * sectorSize * 2, Allocator.Persistent);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void AddBlock(in Vector3Int pos, BlockType blockType) {
         blocksNative[GetId(pos)] = blockType;
     }
 
-    public void FinishGeneratingGrid() {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private void FinishGeneratingGrid() {
         _isGridGenerated = true;
         _isMeshGenerated = false;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetId(in Vector3Int pos) {
         return pos.x * sectorSizeMult + pos.z * sectorSizeHeight + pos.y;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int GetId(in Vector3Int pos, in int3 sectorSize) {
         return pos.x * sectorSize.z + pos.z * sectorSize.y + pos.y;
     }
-
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int3 IdToPos(int index, in int2 sectorSize) {
         return new int3(
             index / (sectorSize.x * sectorSize.y),
@@ -62,7 +71,7 @@ public class Sector : MonoBehaviour {
         );
     }
 
-    public void StartGeneratingMesh() {
+    private void StartGeneratingMesh() {
         // TODO maybe not the best place for this?
         if (!_isGridGenerated) {
             FinishGeneratingGrid();
@@ -78,8 +87,10 @@ public class Sector : MonoBehaviour {
             waterMesh = _meshHelpers[1],
             sectorSize = new int3(sectorSize, sectorSizeHeight, sectorSizeMult),
             blocks = blocksNative,
+            neighbors = neighbors,
         };
-        writeHandle = job.Schedule();
+        // TODO bug sometimes is triggered before last one finished
+        meshJobHandle = job.Schedule();
     }
 
     private void AssignRenderMesh() {
@@ -116,10 +127,16 @@ public class Sector : MonoBehaviour {
 
     public void StartGeneratingGrid() {
         _isGridGenerated = false;
+        if (blocksJobHandle.IsCompleted) {
+        }
+        else {
+            Debug.LogWarning("Grid generation started before previous has completed. Probably a logical error");
+        }
     }
 
     private void OnDestroy() {
         blocksNative.Dispose();
+        neighbors.Dispose();
         foreach (var mesh in _meshHelpers) {
             mesh.Dispose();
         }
@@ -133,14 +150,14 @@ public class Sector : MonoBehaviour {
     public static void RenderSectorsParallel(List<Sector> sectorsToGenerate) {
         JobHandle.ScheduleBatchedJobs();
         foreach (var sector in sectorsToGenerate) {
-            sector.writeHandle.Complete();
+            sector.blocksJobHandle.Complete();
             sector.StartGeneratingMesh();
         }
         JobHandle.ScheduleBatchedJobs();
         var bakeJobs = new List<JobHandle>(sectorsToGenerate.Count);
         for (int i = 0; i < sectorsToGenerate.Count; i++) {
             var sector = sectorsToGenerate[i];
-            sector.writeHandle.Complete();
+            sector.meshJobHandle.Complete();
             var meshId = sector.PrepareCollisionMesh().GetInstanceID();
             var job = new MeshBakeJob {meshId = meshId}.Schedule();
             bakeJobs.Add(job);

@@ -1,7 +1,8 @@
+using System.Runtime.CompilerServices;
 using Unity.Mathematics;
 using UnityEngine;
 
-internal static class Coordinates {
+public static class Coordinates {
     /** There are 3 types of coordinates:
      * sampling plane
      * world
@@ -36,6 +37,7 @@ internal static class Coordinates {
         );
     }
     
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static int3 InternalToPlanePos(in int2 sector, in int3 pos, in int2 sectorSize) {
         return new int3(
             pos.x + sector.x * sectorSize.x,
