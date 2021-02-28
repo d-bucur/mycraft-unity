@@ -6,9 +6,7 @@ using UnityEngine;
 
 [BurstCompile]
 public struct MeshGenerationJob : IJob {
-    public NativeList<Vector3> vertices;
-    public NativeList<Vector2> uvs;
-    public NativeList<int> triangles;
+    public MeshHelper mesh;
     [ReadOnly] public int2 sectorSize;
     [ReadOnly] public NativeArray<BlockType> blocks;
     // TODO add another mesh for transparent 
@@ -155,23 +153,23 @@ public struct MeshGenerationJob : IJob {
     private void AddFaceInternal(in Vector3 a, in Vector3 b, in Vector3 c, in Vector3 d, in Vector3 center,
         int uvX, int uvY, int meshId) {
         
-        var i = vertices.Length;
-        vertices.Add(center + a);
-        vertices.Add(center + b);
-        vertices.Add(center + c);
-        vertices.Add(center + d);
+        var i = mesh.vertices.Length;
+        mesh.vertices.Add(center + a);
+        mesh.vertices.Add(center + b);
+        mesh.vertices.Add(center + c);
+        mesh.vertices.Add(center + d);
         
-        uvs.Add(new Vector2(uvX * _uvDelta, uvY * _uvDelta));
-        uvs.Add(new Vector2(uvX * _uvDelta, uvY * _uvDelta + _uvDelta));
-        uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta + _uvDelta));
-        uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta));
+        mesh.uvs.Add(new Vector2(uvX * _uvDelta, uvY * _uvDelta));
+        mesh.uvs.Add(new Vector2(uvX * _uvDelta, uvY * _uvDelta + _uvDelta));
+        mesh.uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta + _uvDelta));
+        mesh.uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta));
         
-        triangles.Add(i);
-        triangles.Add(i+1);
-        triangles.Add(i+3);
+        mesh.triangles.Add(i);
+        mesh.triangles.Add(i+1);
+        mesh.triangles.Add(i+3);
         
-        triangles.Add(i+1);
-        triangles.Add(i+2);
-        triangles.Add(i+3);
+        mesh.triangles.Add(i+1);
+        mesh.triangles.Add(i+2);
+        mesh.triangles.Add(i+3);
     }
 }

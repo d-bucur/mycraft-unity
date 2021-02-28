@@ -1,15 +1,15 @@
+using Unity.Collections;
 using UnityEngine;
 
-public class MeshHelper {
-    // TODO use NativeArrays directly
-    public ResizableArray<Vector3> vertices;
-    public ResizableArray<Vector2> uvs;
-    public ResizableArray<int> triangles;
+public struct MeshHelper {
+    public NativeList<Vector3> vertices;
+    public NativeList<Vector2> uvs;
+    public NativeList<int> triangles;
 
     public MeshHelper(int predictedVertices) {
-        vertices = new ResizableArray<Vector3>(predictedVertices);
-        uvs = new ResizableArray<Vector2>(predictedVertices);
-        triangles = new ResizableArray<int>(predictedVertices);
+        vertices = new NativeList<Vector3>(predictedVertices, Allocator.Persistent);
+        uvs = new NativeList<Vector2>(predictedVertices, Allocator.Persistent);
+        triangles = new NativeList<int>(predictedVertices, Allocator.Persistent);
     }
 
     public void Clear() {
@@ -18,19 +18,27 @@ public class MeshHelper {
         uvs.Clear();
     }
 
+    public void Dispose() {
+        triangles.Dispose();
+        vertices.Dispose();
+        uvs.Dispose();
+    }
+
     public Mesh GetRenderMesh() {
         var mesh = new Mesh();
-        mesh.SetVertices(vertices.GetArrayRef(), 0, vertices.Count);
-        mesh.SetTriangles(triangles.GetArrayRef(), 0, triangles.Count, 0);
-        mesh.SetUVs(0, uvs.GetArrayRef(), 0, uvs.Count);
+        mesh.SetVertices(vertices.AsArray(), 0, vertices.Length);
+        mesh.SetIndices(triangles.AsArray(), MeshTopology.Triangles, 0);
+        // mesh.SetTriangles(triangles.AsArray(), 0, triangles.Length, 0);
+        mesh.SetUVs(0, uvs.AsArray(), 0, uvs.Length);
         mesh.RecalculateNormals();
         return mesh;
     }
     public Mesh MakeCollisionMesh() {
         var mesh = new Mesh();
-        mesh.SetVertices(vertices.CloneArray(), 0, vertices.Count);
-        mesh.SetTriangles(triangles.CloneArray(), 0, triangles.Count, 0);
-        mesh.RecalculateNormals();
+        // use different meshes by copying
+        mesh.SetVertices(vertices.AsArray(), 0, vertices.Length);
+        mesh.SetIndices(triangles.AsArray(), MeshTopology.Triangles, 0);
+        // mesh.RecalculateNormals();
         return mesh;
     }
 }

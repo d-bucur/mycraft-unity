@@ -5,6 +5,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Profiling;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshCollider))]
@@ -24,9 +25,6 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     
     public JobHandle writeHandle;
     public NativeArray<BlockType> blocksNative;
-    private NativeList<int> _triangles;
-    private NativeList<Vector2> _uvs;
-    private NativeList<Vector3> _vertices;
     private Mesh _collisionMesh;
 
     public static void SetSizes(int sectorSize, int sectorSizeHeight) {
@@ -42,9 +40,6 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             _meshHelpers[i] = new MeshHelper(averageFaces);
         }
         blocksNative = new NativeArray<BlockType>(GetTotalBlocks(), Allocator.Persistent);
-        _triangles = new NativeList<int>(averageFaces, Allocator.Persistent);
-        _uvs = new NativeList<Vector2>(averageFaces, Allocator.Persistent);
-        _vertices = new NativeList<Vector3>(averageFaces, Allocator.Persistent);
     }
 
     public void AddBlock(in Vector3Int pos, BlockType blockType) {
@@ -96,9 +91,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
             helper.Clear();
         
         var job = new MeshGenerationJob {
-            triangles = _triangles,
-            uvs = _uvs,
-            vertices = _vertices,
+            mesh = _meshHelpers[0],
             sectorSize = new int2(sectorSize,sectorSizeHeight),
             blocks = blocksNative,
         };
@@ -106,27 +99,26 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     }
 
     public Mesh AssignRenderMesh() {
-        // TODO find some copy that doesn't generate garbage
-        _meshHelpers[0].triangles.SetArray(_triangles.ToArray());
-        _meshHelpers[0].uvs.SetArray(_uvs.ToArray());
-        _meshHelpers[0].vertices.SetArray(_vertices.ToArray());
+        Profiler.BeginSample("Generating render mesh");
         var solidsMesh = _meshHelpers[0].GetRenderMesh();
         GetComponent<MeshFilter>().mesh = solidsMesh;
         var transparentsMesh = _meshHelpers[1].GetRenderMesh();
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
-        _triangles.Clear();
-        _uvs.Clear();
-        _vertices.Clear();
+        Profiler.EndSample();
+        Profiler.BeginSample("Generating collision mesh");
         _collisionMesh = _meshHelpers[0].MakeCollisionMesh();
+        Profiler.EndSample();
         return _collisionMesh;
     }
 
     public void FinishMeshBaking() {
+        Profiler.BeginSample("Recalculate normals for collision mesh");
         var meshCollider = GetComponent<MeshCollider>();
         _collisionMesh.RecalculateNormals(); // TODO figure out how to recalculate normals in job
         meshCollider.sharedMesh = _collisionMesh;
         gameObject.SetActive(true);
         _isMeshGenerated = true;
+        Profiler.EndSample();
     }
 
     public void Hide() {
@@ -147,8 +139,8 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
 
     private void OnDestroy() {
         blocksNative.Dispose();
-        _uvs.Dispose();
-        _triangles.Dispose();
-        _vertices.Dispose();
+        foreach (var mesh in _meshHelpers) {
+            mesh.Dispose();
+        }
     }
 }
