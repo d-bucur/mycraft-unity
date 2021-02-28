@@ -85,7 +85,7 @@ public class WorldGenerator : MonoBehaviour {
                 sectors.Add(GetOrGenerateSector(sectorPos));
             }
         }
-        GenerateSectorsParallel(sectors);
+        Sector.GenerateSectorsParallel(sectors);
     }
 
     private void GenerateSector(Sector sector, in Vector2Int pos) {
@@ -200,33 +200,11 @@ public class WorldGenerator : MonoBehaviour {
             var newPos = _sectorsToRender.Dequeue();
             sectorsToGenerate.Add(GetOrGenerateSector(newPos));
         }
-        GenerateSectorsParallel(sectorsToGenerate);
-        // TODO repeat until budget is filled up
+        Sector.GenerateSectorsParallel(sectorsToGenerate);
+        // TODO repeat if frame budget available
     }
 
-    private static void GenerateSectorsParallel(List<Sector> sectorsToGenerate) {
-        JobHandle.ScheduleBatchedJobs();
-        for (int i = 0; i < sectorsToGenerate.Count; i++) {
-            var sector = sectorsToGenerate[i];
-            sector.writeHandle.Complete();
-            sector.StartGeneratingMesh();
-        }
-        JobHandle.ScheduleBatchedJobs();
-        var meshesToBake = new NativeArray<int>(sectorsToGenerate.Count, Allocator.TempJob);
-        for (int i = 0; i < sectorsToGenerate.Count; i++) {
-            var sector = sectorsToGenerate[i];
-            sector.writeHandle.Complete();
-            meshesToBake[i] = sector.AssignRenderMesh().GetInstanceID();
-        }
-        new MeshBakeJob {meshIds = meshesToBake}
-            .Schedule(meshesToBake.Length, 1)
-            .Complete();
-        for (int i = 0; i < sectorsToGenerate.Count; i++) {
-            sectorsToGenerate[i].FinishMeshBaking();
-        }
-    }
-
-    public Sector GetOrGenerateSector(Vector2Int sectorPos) {
+    private Sector GetOrGenerateSector(Vector2Int sectorPos) {
         Sector sector;
         if (_activeSectors.TryGetValue(sectorPos, out sector)) {
             if (sector.IsGridGenerated) {
@@ -248,7 +226,7 @@ public class WorldGenerator : MonoBehaviour {
         return sector;
     }
 
-    public Sector GetSector(Vector2Int sectorPos) {
+    private Sector GetSector(Vector2Int sectorPos) {
         return _activeSectors[sectorPos];
     }
 

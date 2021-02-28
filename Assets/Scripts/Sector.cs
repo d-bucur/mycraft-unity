@@ -68,6 +68,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         );
     }
 
+    // TODO remove
     public IEnumerator<Vector3Int> GetEnumerator() {
         for (var x = 0; x < sectorSize; x++)
             for (var z = 0; z < sectorSize; z++)
@@ -98,38 +99,39 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         writeHandle = job.Schedule();
     }
 
-    public Mesh AssignRenderMesh() {
+    private void AssignRenderMesh() {
         Profiler.BeginSample("Generating render mesh");
         var solidsMesh = _meshHelpers[0].GetRenderMesh();
         GetComponent<MeshFilter>().mesh = solidsMesh;
         var transparentsMesh = _meshHelpers[1].GetRenderMesh();
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
         Profiler.EndSample();
+    }
+
+    private Mesh PrepareCollisionMesh() {
         Profiler.BeginSample("Generating collision mesh");
-        _collisionMesh = _meshHelpers[0].MakeCollisionMesh();
+        // TODO should maybe use a different mesh?
+        _collisionMesh = _meshHelpers[0].GetRenderMesh();
         Profiler.EndSample();
         return _collisionMesh;
     }
 
-    public void FinishMeshBaking() {
-        Profiler.BeginSample("Recalculate normals for collision mesh");
+    private void AssignCollisionMesh() {
         var meshCollider = GetComponent<MeshCollider>();
-        _collisionMesh.RecalculateNormals(); // TODO figure out how to recalculate normals in job
         meshCollider.sharedMesh = _collisionMesh;
         gameObject.SetActive(true);
         _isMeshGenerated = true;
-        Profiler.EndSample();
     }
 
     public void Hide() {
         gameObject.SetActive(false);
     }
 
-    public static int GetTotalBlocks() {
+    private static int GetTotalBlocks() {
         return sectorSize * sectorSize * sectorSizeHeight;
     }
 
-    public void CopyJobData(NativeArray<BlockType> native) {
+    private void CopyJobData(NativeArray<BlockType> native) {
         native.CopyTo(_blocks);
     }
 
@@ -141,6 +143,31 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         blocksNative.Dispose();
         foreach (var mesh in _meshHelpers) {
             mesh.Dispose();
+        }
+    }
+
+    public static void GenerateSectorsParallel(List<Sector> sectorsToGenerate) {
+        JobHandle.ScheduleBatchedJobs();
+        foreach (var sector in sectorsToGenerate) {
+            sector.writeHandle.Complete();
+            sector.StartGeneratingMesh();
+        }
+        JobHandle.ScheduleBatchedJobs();
+        var meshesToBake = new NativeArray<int>(sectorsToGenerate.Count, Allocator.TempJob);
+        for (int i = 0; i < sectorsToGenerate.Count; i++) {
+            var sector = sectorsToGenerate[i];
+            sector.writeHandle.Complete();
+            meshesToBake[i] = sector.PrepareCollisionMesh().GetInstanceID();
+        }
+        // TODO maybe launch bake jobs independently?
+        var bakeJob = new MeshBakeJob {meshIds = meshesToBake}
+            .Schedule(meshesToBake.Length, 1);
+        JobHandle.ScheduleBatchedJobs();
+        foreach (var s in sectorsToGenerate)
+            s.AssignRenderMesh();
+        bakeJob.Complete();
+        foreach (var s in sectorsToGenerate) {
+            s.AssignCollisionMesh();
         }
     }
 }

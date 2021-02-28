@@ -36,12 +36,4 @@ public struct MeshHelper {
         mesh.SetNormals(normals.AsArray(), 0, normals.Length);
         return mesh;
     }
-    public Mesh MakeCollisionMesh() {
-        // TODO use different mesh ?
-        var mesh = new Mesh();
-        mesh.SetVertices(vertices.AsArray(), 0, vertices.Length);
-        mesh.SetIndices(triangles.AsArray(), MeshTopology.Triangles, 0);
-        mesh.SetNormals(normals.AsArray(), 0, normals.Length);
-        return mesh;
-    }
 }
