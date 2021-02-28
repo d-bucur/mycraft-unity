@@ -1,6 +1,7 @@
 using UnityEngine;
 
 public class MeshHelper {
+    // TODO use NativeArrays directly
     public ResizableArray<Vector3> vertices;
     public ResizableArray<Vector2> uvs;
     public ResizableArray<int> triangles;
@@ -17,11 +18,18 @@ public class MeshHelper {
         uvs.Clear();
     }
 
-    public Mesh MakeMesh() {
+    public Mesh GetRenderMesh() {
         var mesh = new Mesh();
         mesh.SetVertices(vertices.GetArrayRef(), 0, vertices.Count);
         mesh.SetTriangles(triangles.GetArrayRef(), 0, triangles.Count, 0);
         mesh.SetUVs(0, uvs.GetArrayRef(), 0, uvs.Count);
+        mesh.RecalculateNormals();
+        return mesh;
+    }
+    public Mesh MakeCollisionMesh() {
+        var mesh = new Mesh();
+        mesh.SetVertices(vertices.CloneArray(), 0, vertices.Count);
+        mesh.SetTriangles(triangles.CloneArray(), 0, triangles.Count, 0);
         mesh.RecalculateNormals();
         return mesh;
     }

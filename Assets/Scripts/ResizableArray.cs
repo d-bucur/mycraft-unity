@@ -25,6 +25,14 @@ public class ResizableArray<T> {
         return _array;
     }
 
+    public T[] CloneArray() {
+        return (T[])_array.Clone();
+    }
+
+    public void CopyToArray(T[] array) {
+        _array.CopyTo(array, 0);
+    }
+
     public void Clear() {
         _count = 0;
     }

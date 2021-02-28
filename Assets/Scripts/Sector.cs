@@ -27,6 +27,7 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
     private NativeList<int> _triangles;
     private NativeList<Vector2> _uvs;
     private NativeList<Vector3> _vertices;
+    private Mesh _collisionMesh;
 
     public static void SetSizes(int sectorSize, int sectorSizeHeight) {
         Sector.sectorSize = sectorSize;
@@ -104,21 +105,28 @@ public class Sector : MonoBehaviour, IEnumerable<Vector3Int> {
         writeHandle = job.Schedule();
     }
 
-    public void FinishGeneratingMesh() {
+    public Mesh AssignRenderMesh() {
         // TODO find some copy that doesn't generate garbage
         _meshHelpers[0].triangles.SetArray(_triangles.ToArray());
         _meshHelpers[0].uvs.SetArray(_uvs.ToArray());
         _meshHelpers[0].vertices.SetArray(_vertices.ToArray());
-        var solidsMesh = _meshHelpers[0].MakeMesh();
+        var solidsMesh = _meshHelpers[0].GetRenderMesh();
         GetComponent<MeshFilter>().mesh = solidsMesh;
-        GetComponent<MeshCollider>().sharedMesh = solidsMesh;
-        var transparentsMesh = _meshHelpers[1].MakeMesh();
+        var transparentsMesh = _meshHelpers[1].GetRenderMesh();
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
-        gameObject.SetActive(true);
-        _isMeshGenerated = true;
         _triangles.Clear();
         _uvs.Clear();
         _vertices.Clear();
+        _collisionMesh = _meshHelpers[0].MakeCollisionMesh();
+        return _collisionMesh;
+    }
+
+    public void FinishMeshBaking() {
+        var meshCollider = GetComponent<MeshCollider>();
+        _collisionMesh.RecalculateNormals(); // TODO figure out how to recalculate normals in job
+        meshCollider.sharedMesh = _collisionMesh;
+        gameObject.SetActive(true);
+        _isMeshGenerated = true;
     }
 
     public void Hide() {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Jobs;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
@@ -213,10 +214,17 @@ public class WorldGenerator : MonoBehaviour {
             sector.StartGeneratingMesh();
         }
         JobHandle.ScheduleBatchedJobs();
+        var meshesToBake = new NativeArray<int>(sectorsToGenerate.Count, Allocator.TempJob);
         for (int i = 0; i < sectorsToGenerate.Count; i++) {
             var sector = sectorsToGenerate[i];
             sector.writeHandle.Complete();
-            sector.FinishGeneratingMesh();
+            meshesToBake[i] = sector.AssignRenderMesh().GetInstanceID();
+        }
+        new MeshBakeJob {meshIds = meshesToBake}
+            .Schedule(meshesToBake.Length, 1)
+            .Complete();
+        for (int i = 0; i < sectorsToGenerate.Count; i++) {
+            sectorsToGenerate[i].FinishMeshBaking();
         }
     }
 
@@ -247,6 +255,7 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     public void ConstructBlock(Vector3Int worldPos) {
+        // TODO update to new mesh generation
         var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
         var sector = GetSector(sectorPos);
         sector.AddBlock(internalPos, BlockType.Grass);
@@ -258,6 +267,7 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
+        // TODO update to new mesh generation
         var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
         var sector = GetSector(sectorPos);
         // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));
