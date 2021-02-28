@@ -184,9 +184,10 @@ MonoBehaviour:
       y: 0
   regenTimeBudget: 0.01
   sectorTemplate: {fileID: 569589763807964434, guid: 4d04bae28f2478545ac742228b7fd763, type: 3}
-  waterTreshold: -10
-  snowTreshold: 20
-  sandTreshold: -5
+  groundTypeThresholds:
+    water: -10
+    snow: 20
+    sand: -5
   randomizationType: 1
   seed: 42
   frameRateLimit: 0

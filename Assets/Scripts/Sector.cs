@@ -146,7 +146,7 @@ public class Sector : MonoBehaviour {
             sector.writeHandle.Complete();
             meshesToBake[i] = sector.PrepareCollisionMesh().GetInstanceID();
         }
-        // TODO launch bake jobs independently?
+        // TODO MED launch bake jobs independently?
         var bakeJob = new MeshBakeJob {meshIds = meshesToBake}
             .Schedule(meshesToBake.Length, 1);
         JobHandle.ScheduleBatchedJobs();

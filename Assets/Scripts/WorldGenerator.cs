@@ -97,7 +97,7 @@ public class WorldGenerator : MonoBehaviour {
             sectorOffset = pos.ToVector2Int(),
             thresholds = groundTypeThresholds,
         };
-        // TODO apply _worldChanges when completed
+        // TODO HIGH apply _worldChanges when completed
         var handle = job.Schedule();
         sector.writeHandle = handle;
         _activeSectors.Add(pos, sector);
@@ -188,7 +188,7 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     public void ConstructBlock(Vector3Int worldPos) {
-        // TODO update to new mesh generation
+        // TODO HIGH update to new mesh generation
         var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
         var sector = GetSector(sectorPos);
         sector.AddBlock(internalPos, BlockType.Grass);
@@ -200,7 +200,7 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
-        // TODO update to new mesh generation
+        // TODO HIGH update to new mesh generation
         var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
         var sector = GetSector(sectorPos);
         // Debug.Log(String.Format("Building at ({0}): {1}", sectorPos, gridPos));

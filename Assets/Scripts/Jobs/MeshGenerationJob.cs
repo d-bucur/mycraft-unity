@@ -14,6 +14,7 @@ public struct MeshGenerationJob : IJob {
 
     public void Execute() {
         SweepMeshFaces();
+        // TODO HIGH need to sweep border of neighboring sectors
     }
     
     private struct SweepData {
