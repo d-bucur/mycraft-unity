@@ -13,12 +13,9 @@ public struct NoiseMap {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public float Sample(int2 pos) {
         var p =(float2)pos * frequency + offset;
-        // var z = noise.cnoise(p);
+        // var z = noise.cnoise(p);  // TODO PERF try noise library
         var z = Mathf.PerlinNoise(p.x, p.y) - 0.5f;
-        // Debug.Log($"noise: {z}");
         z = math.pow(z, power);
-        float res = z * amplitude;
-        // Debug.Log($"returning {res}");
-        return res;
+        return z * amplitude;
     }
 }

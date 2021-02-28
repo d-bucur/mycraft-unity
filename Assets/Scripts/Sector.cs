@@ -71,6 +71,7 @@ public class Sector : MonoBehaviour {
         );
     }
 
+    // TODO refactor generation methods
     private void StartGeneratingMesh() {
         // TODO maybe not the best place for this?
         if (!_isGridGenerated) {
