@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using Unity.Collections;
 using Unity.Jobs;
@@ -21,7 +19,7 @@ public class Sector : MonoBehaviour {
 
     public static int sectorSize;
     public static int sectorSizeHeight;
-    private static int _xSize, _zSize;
+    private static int sectorSizeMult;
     
     public JobHandle writeHandle;
     public NativeArray<BlockType> blocksNative;
@@ -29,8 +27,8 @@ public class Sector : MonoBehaviour {
 
     public static void SetSizes(int sectorSize, int sectorSizeHeight) {
         Sector.sectorSize = sectorSize;
-        Sector.sectorSizeHeight = _zSize = sectorSizeHeight;
-        _xSize = sectorSizeHeight * sectorSize;
+        Sector.sectorSizeHeight = sectorSizeHeight;
+        sectorSizeMult = sectorSizeHeight * sectorSize;
     }
 
     public void Init() {
@@ -51,13 +49,12 @@ public class Sector : MonoBehaviour {
         _isMeshGenerated = false;
     }
 
-    public static int GetId(in Vector3Int pos) {
-        return pos.x * _xSize + pos.z * _zSize + pos.y;
+    private static int GetId(in Vector3Int pos) {
+        return pos.x * sectorSizeMult + pos.z * sectorSizeHeight + pos.y;
     }
 
-    public static int GetId(in Vector3Int pos, in int2 sectorSize) {
-        // TODO cache
-        return pos.x * sectorSize.x * sectorSize.y + pos.z * sectorSize.y + pos.y;
+    public static int GetId(in Vector3Int pos, in int3 sectorSize) {
+        return pos.x * sectorSize.z + pos.z * sectorSize.y + pos.y;
     }
 
     public static int3 IdToPos(int index, in int2 sectorSize) {
@@ -83,7 +80,7 @@ public class Sector : MonoBehaviour {
         var job = new MeshGenerationJob {
             solidMesh = _meshHelpers[0],
             waterMesh = _meshHelpers[1],
-            sectorSize = new int2(sectorSize,sectorSizeHeight),
+            sectorSize = new int3(sectorSize, sectorSizeHeight, sectorSizeMult),
             blocks = blocksNative,
         };
         writeHandle = job.Schedule();

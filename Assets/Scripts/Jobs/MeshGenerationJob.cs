@@ -8,7 +8,7 @@ using UnityEngine;
 public struct MeshGenerationJob : IJob {
     public MeshHelper solidMesh;
     public MeshHelper waterMesh;
-    [ReadOnly] public int2 sectorSize;
+    [ReadOnly] public int3 sectorSize;
     [ReadOnly] public NativeArray<BlockType> blocks;
     // TODO test if faster with math structs
 
