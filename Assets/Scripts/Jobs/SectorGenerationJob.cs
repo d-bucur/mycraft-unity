@@ -3,7 +3,6 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
-using UnityEngine;
 
 [BurstCompile]
 public struct SectorGenerationJob : IJob {
@@ -18,17 +17,21 @@ public struct SectorGenerationJob : IJob {
 
     public void Execute() {
         float groundHeight = 0f;
+        float typeNoiseSample = 0f;
         for (int index = 0; index < generatedBlocks.Length; index++) {
             var internalPos = Sector.IdToPos(index, sectorSize);
             var planePos = Coordinates.InternalToPlanePos(sectorOffset, internalPos, sectorSize);
-            if (index % sectorSize.y == 0)
+            if (index % sectorSize.y == 0) {
                 groundHeight = SampleMaps(planePos.xz);
-            generatedBlocks[index] = GetBlockTypeWithDiffs(planePos, groundHeight);
+                typeNoiseSample = SampleMaps(planePos.xz);
+            }
+            generatedBlocks[index] = GetBlockTypeWithDiffs(planePos, groundHeight, typeNoiseSample);
         }
         GenerateNeighbors();
     }
 
     private void GenerateNeighbors() {
+        neighbors.Clear();
         for (int z = 0; z < sectorSize.x; z++)
             GenerateNeighborsInternal(-1, z);
         for (int x = 0; x < sectorSize.x; x++)
@@ -39,21 +42,24 @@ public struct SectorGenerationJob : IJob {
     private void GenerateNeighborsInternal(int x, int z) {
         var planeXZ = Coordinates.InternalToPlanePos(sectorOffset, new int3(x, 0, z), sectorSize);
         float groundHeight = SampleMaps(planeXZ.xz);
+        float typeNoiseSample = typeNoise.Sample(planeXZ.xz);
         for (int y = 0; y < sectorSize.y; y++) {
             var internalPos = new int3(x, y, z);
             // TODO can be optimized by adding y+1 to last position
             var planePos = Coordinates.InternalToPlanePos(sectorOffset, internalPos, sectorSize);
-            var blockType = GetBlockTypeWithDiffs(planePos, groundHeight);
+            // TODO bug typenoise is sometimes wrong on border
+            var blockType = GetBlockTypeWithDiffs(planePos, groundHeight, typeNoiseSample);
             neighbors[internalPos] = blockType;
         }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private BlockType GetBlockTypeWithDiffs(in int3 planePos, float groundHeight) {
+    private BlockType GetBlockTypeWithDiffs(in int3 planePos, float groundHeight, float typeNoiseSample) {
         return worldChanges.TryGetValue(planePos, out var type) ? 
-            type : GetBlockType(planePos, groundHeight, typeNoise.Sample(planePos.xz));
+            type : GetBlockType(planePos, groundHeight, typeNoiseSample);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private float SampleMaps(in int2 planePos) {
         float groundHeight = 0f;
         for (int i = 0; i < noiseMaps.Length; i++) {

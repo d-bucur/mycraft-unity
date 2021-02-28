@@ -1,6 +1,7 @@
 using System;
+using System.Runtime.CompilerServices;
 
-public enum BlockType {
+public enum BlockType : byte {
     Water = 0,
     Sand = 1,
     Snow = 2,
@@ -14,6 +15,7 @@ public enum BlockGroup {
 }
 
 public struct Block {
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BlockGroup GetGroup(BlockType type) {
         switch (type) {
             case BlockType.Empty: return BlockGroup.Transparent;

@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
@@ -159,9 +160,9 @@ public struct MeshGenerationJob : IJob {
         };
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private BlockType SafeGetBlock(in Vector3Int lastPos) {
-        var id = Sector.GetId(lastPos, sectorSize);
-        return blocks[id];
+        return blocks[Sector.GetId(lastPos, sectorSize)];
     }
 
     private void AddFace(in Vector3 center, Direction dir, BlockType type, ref MeshHelper mesh) {
