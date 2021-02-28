@@ -37,10 +37,9 @@ public class WorldGenerator : MonoBehaviour {
     private void Awake() {
         Instance = this;
         Sector.SetSizes(sectorSize, sectorSizeHeight);
-        PrepareNativeMaps();
         GenerateRandomness();
+        PrepareNativeMaps();
         GenerateInitialMap();
-        Random.InitState(seed);
     }
 
     private void PrepareNativeMaps() {
