@@ -40,16 +40,16 @@ public struct SectorGenerationJob : IJob {
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void GenerateNeighborsInternal(int x, int z) {
-        var planeXZ = Coordinates.InternalToPlanePos(sectorOffset, new int3(x, 0, z), sectorSize);
-        float groundHeight = SampleMaps(planeXZ.xz);
-        float typeNoiseSample = typeNoise.Sample(planeXZ.xz);
+        var planePos = Coordinates.InternalToPlanePos(sectorOffset, new int3(x, 0, z), sectorSize);
+        float groundHeight = SampleMaps(planePos.xz);
+        float typeNoiseSample = typeNoise.Sample(planePos.xz);
+        var internalPos = new int3(x, 0, z);
         for (int y = 0; y < sectorSize.y; y++) {
-            var internalPos = new int3(x, y, z);
-            // TODO PERF can be optimized by adding y+1 to last position
-            var planePos = Coordinates.InternalToPlanePos(sectorOffset, internalPos, sectorSize);
+            internalPos.y = y;
             // TODO BUG typenoise is sometimes wrong on border
             var blockType = GetBlockTypeWithDiffs(planePos, groundHeight, typeNoiseSample);
             neighbors[internalPos] = blockType;
+            planePos.y++;
         }
     }
 

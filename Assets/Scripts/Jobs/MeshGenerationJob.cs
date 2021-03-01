@@ -13,8 +13,6 @@ public struct MeshGenerationJob : IJob {
     [ReadOnly] public NativeArray<BlockType> blocks;
     [ReadOnly] public NativeHashMap<int3, BlockType> neighbors;  // TODO deallocate on finish, when double generation bug is resolved
 
-    // TODO PERF test if faster with math structs
-
     public void Execute() {
         SweepMeshFaces();
         SweepBorderFaces();
@@ -209,7 +207,6 @@ public struct MeshGenerationJob : IJob {
         mesh.uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta + _uvDelta));
         mesh.uvs.Add(new Vector2(uvX * _uvDelta + _uvDelta, uvY * _uvDelta));
         
-        // TODO PERF Try with MeshTopology.Quads
         mesh.triangles.Add(i);
         mesh.triangles.Add(i+1);
         mesh.triangles.Add(i+3);

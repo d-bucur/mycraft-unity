@@ -9,7 +9,7 @@ public enum BlockType : byte {
     Empty = 4,
 }
 
-public enum BlockGroup {
+public enum BlockGroup : byte {
     Solid = 0,
     Transparent = 1,
 }
@@ -17,13 +17,13 @@ public enum BlockGroup {
 public struct Block {
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static BlockGroup GetGroup(BlockType type) {
-        switch (type) {
-            case BlockType.Empty: return BlockGroup.Transparent;
-            case BlockType.Water: return BlockGroup.Transparent;
-            case BlockType.Snow: return BlockGroup.Solid;
-            case BlockType.Sand: return BlockGroup.Solid;
-            case BlockType.Grass: return BlockGroup.Solid;
-        }
-        throw new ArgumentException("Unknown block type");
+        return type switch {
+            BlockType.Empty => BlockGroup.Transparent,
+            BlockType.Water => BlockGroup.Transparent,
+            BlockType.Snow => BlockGroup.Solid,
+            BlockType.Sand => BlockGroup.Solid,
+            BlockType.Grass => BlockGroup.Solid,
+            _ => throw new ArgumentException("Unknown block type")
+        };
     }
 }
