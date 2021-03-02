@@ -9,16 +9,13 @@ using UnityEngine.Profiling;
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshCollider))]
 public class Sector : MonoBehaviour {
-    public Vector2Int offset;
-    
     private readonly MeshHelper[] _meshHelpers = new MeshHelper[2];
-    private bool _isMeshGenerated = false;
-    private bool _isGridGenerated = false;
-    public bool IsGridGenerated => _isGridGenerated;
+    public Vector2Int offset => _offset;
 
     public static int sectorSize;
     public static int sectorSizeHeight;
     private static int sectorSizeMult;
+    private Vector2Int _offset;
     
     public JobHandle meshJobHandle;
     public NativeArray<BlockType> blocksNative;
@@ -46,12 +43,6 @@ public class Sector : MonoBehaviour {
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private void FinishGeneratingGrid() {
-        _isGridGenerated = true;
-        _isMeshGenerated = false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetId(in Vector3Int pos) {
         return pos.x * sectorSizeMult + pos.z * sectorSizeHeight + pos.y;
     }
@@ -68,17 +59,6 @@ public class Sector : MonoBehaviour {
             index % sectorSize.y,
             (index / sectorSize.y) % sectorSize.x
         );
-    }
-
-    // TODO refactor generation methods - probably not needed anymore
-    private void StartGeneratingMesh() {
-        // TODO BUG sometimes is triggered before last one finished
-        // TODO maybe not the best place for this?
-        if (!_isGridGenerated) {
-            FinishGeneratingGrid();
-        }
-        if (_isGridGenerated && _isMeshGenerated)
-            return;
     }
 
     private void AssignRenderMesh() {
@@ -101,21 +81,15 @@ public class Sector : MonoBehaviour {
         var meshCollider = GetComponent<MeshCollider>();
         meshCollider.sharedMesh = _collisionMesh;
         gameObject.SetActive(true);
-        _isMeshGenerated = true;
-    }
-
-    public void Hide() {
-        gameObject.SetActive(false);
     }
 
     private static int GetTotalBlocks() {
         return sectorSize * sectorSize * sectorSizeHeight;
     }
 
-    public void StartGeneratingGrid(SectorGenerationJob sectorGenerationJob) {
+    public void StartMeshGeneration(SectorGenerationJob sectorGenerationJob) {
         foreach (var helper in _meshHelpers)
             helper.Clear();
-        _isGridGenerated = false;
         var generationHandle = sectorGenerationJob.Schedule();
         var meshHandle = new MeshGenerationJob {
             solidMesh = _meshHelpers[0],
@@ -127,20 +101,7 @@ public class Sector : MonoBehaviour {
         meshJobHandle = meshHandle.Schedule(generationHandle);
     }
 
-    private void OnDestroy() {
-        blocksNative.Dispose();
-        neighbors.Dispose();
-        foreach (var mesh in _meshHelpers) {
-            mesh.Dispose();
-        }
-    }
-
-    public void RenderSectorParallel() {
-        FinishGeneratingGrid(); // TODO sequence of calls is confusing, refactor
-        RenderSectorsParallel(new List<Sector> {this});
-    }
-
-    public static void RenderSectorsParallel(List<Sector> sectorsToGenerate) {
+    public static void AssignMeshesParallel(List<Sector> sectorsToGenerate) {
         if (sectorsToGenerate.Count == 0)
             return;
         var bakeJobs = new List<JobHandle>(sectorsToGenerate.Count);
@@ -159,5 +120,26 @@ public class Sector : MonoBehaviour {
             var s = sectorsToGenerate[i];
             s.AssignCollisionMesh();
         }
+    }
+
+    public void AssignMeshParallel() {
+        AssignMeshesParallel(new List<Sector> {this});
+    }
+
+    public void Hide() {
+        gameObject.SetActive(false);
+    }
+
+    private void OnDestroy() {
+        blocksNative.Dispose();
+        neighbors.Dispose();
+        foreach (var mesh in _meshHelpers) {
+            mesh.Dispose();
+        }
+    }
+
+    public void SetOffset(in Vector2Int pos) {
+        _offset = pos;
+        transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
     }
 }

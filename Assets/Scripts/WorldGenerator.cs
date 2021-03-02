@@ -15,7 +15,6 @@ public class WorldGenerator : MonoBehaviour {
     public List<NoiseMap> noiseMaps;
     private NativeArray<NoiseMap> _noiseMapsNative;
     public NoiseMap typeNoise;
-    public float regenTimeBudget;
     public Sector sectorTemplate;
     public GroundTypeThresholds groundTypeThresholds;
     public RandomizationType randomizationType; 
@@ -55,11 +54,6 @@ public class WorldGenerator : MonoBehaviour {
         _worldChanges = new NativeHashMap<int3, BlockType>(100, Allocator.Persistent);
     }
 
-    private void OnDestroy() {
-        _noiseMapsNative.Dispose();
-        _worldChanges.Dispose();
-    }
-
     private void GenerateRandomness() { 
         if (randomizationType == RandomizationType.NoRandom) 
             return;
@@ -75,26 +69,17 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void Start() {
-        if (frameRateLimit > 0)
-            Application.targetFrameRate = frameRateLimit;
+        Application.targetFrameRate = frameRateLimit;
     }
 
     private void GenerateInitialMap() {
+        // TODO start from center
         for (var x = -viewRange; x <= viewRange; x++) {
             for (var y = -viewRange; y <= viewRange; y++) {
                 var sectorPos = new Vector2Int(x, y);
                 _sectorsToGenerate.Enqueue(sectorPos);
             }
         }
-        // Sector.RenderSectorsParallel(sectors);
-    }
-
-    // TODO outdated
-    private void GenerateSector(Sector sector, in Vector2Int pos) {
-        // TODO BUG sometimes is triggered before last one finished
-        sector.offset = pos;
-        sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
-        
     }
 
     private float SampleMaps(in int2 pos) {
@@ -145,12 +130,22 @@ public class WorldGenerator : MonoBehaviour {
         sector.Hide();
     }
 
-    // TODO Should be update?
     private void LateUpdate() {
-        // Start queuing long running jobs for new sectors
-        Profiler.BeginSample("Enqueue new generations");
-        var newSectorsToVisualize = new List<Sector>();
-        while (_sectorsToGenerate.Count > 0 && newSectorsToVisualize.Count < JobsUtility.JobWorkerCount) {
+        if (_sectorsToVisualize.Count == 0) {
+            GenerateNewSectorsParallel();
+        }
+        else {
+            Profiler.BeginSample("Render sectors from prev frame");
+            Sector.AssignMeshesParallel(_sectorsToVisualize);
+            _sectorsToVisualize.Clear();
+            Profiler.EndSample();
+        }
+    }
+
+    private void GenerateNewSectorsParallel() {
+        Profiler.BeginSample("Generate new sectors");
+        // TODO can move scheduling to update and waiting to lateupdate
+        while (_sectorsToGenerate.Count > 0 && _sectorsToVisualize.Count < JobsUtility.JobWorkerCount) {
             var newPos = _sectorsToGenerate.Dequeue();
             var sector = GetOrGenerateSector(newPos);
             var job = new SectorGenerationJob {
@@ -163,33 +158,21 @@ public class WorldGenerator : MonoBehaviour {
                 worldChanges = _worldChanges,
                 neighbors = sector.neighbors,
             };
-            sector.StartGeneratingGrid(job);
-            newSectorsToVisualize.Add(sector);
-            // TODO probably should not add until generation is done
+            sector.StartMeshGeneration(job);
+            _sectorsToVisualize.Add(sector);
             _activeSectors.Add(sector.offset, sector);
         }
         JobHandle.ScheduleBatchedJobs();
-        Profiler.EndSample();
-        // Finish jobs from previous frame
-        Profiler.BeginSample("Render sectors from prev frame");
-        Sector.RenderSectorsParallel(_sectorsToVisualize);
-        Profiler.EndSample();
-        Profiler.BeginSample("Wait on generations");
-        _sectorsToVisualize = newSectorsToVisualize;
-        foreach (var sector in newSectorsToVisualize) {
+        foreach (var sector in _sectorsToVisualize) {
             sector.meshJobHandle.Complete();
         }
         Profiler.EndSample();
-        // TODO repeat if frame budget available
     }
 
     private Sector GetOrGenerateSector(Vector2Int sectorPos) {
         Sector sector;
         if (_activeSectors.TryGetValue(sectorPos, out sector)) {
-            if (sector.IsGridGenerated)
-                return sector;
-            else
-                throw new InvalidProgramException("Sector in _active sectors that has not been generated");
+            return sector;
         }
         if (_sectorsReleased.Count > 0) {
             sector = _sectorsReleased.Dequeue();
@@ -199,7 +182,7 @@ public class WorldGenerator : MonoBehaviour {
             sector = Instantiate(sectorTemplate);
             sector.Init();
         }
-        GenerateSector(sector, sectorPos);
+        sector.SetOffset(sectorPos);
         return sector;
     }
 
@@ -213,7 +196,7 @@ public class WorldGenerator : MonoBehaviour {
         sector.AddBlock(internalPos, BlockType.Grass);
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
         _worldChanges.AddOrReplace(planePos.ToInt3(), BlockType.Grass);
-        sector.RenderSectorParallel();
+        sector.AssignMeshParallel();
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
@@ -223,6 +206,11 @@ public class WorldGenerator : MonoBehaviour {
         var blockType = planePos.y < groundTypeThresholds.water ? BlockType.Water : BlockType.Empty;
         sector.AddBlock(internalPos, blockType);
         _worldChanges.AddOrReplace(planePos.ToInt3(), blockType);
-        sector.RenderSectorParallel();
+        sector.AssignMeshParallel();
+    }
+
+    private void OnDestroy() {
+        _noiseMapsNative.Dispose();
+        _worldChanges.Dispose();
     }
 }
