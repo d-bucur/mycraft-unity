@@ -5,6 +5,7 @@ using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Profiling;
 using Random = UnityEngine.Random;
 
 public class WorldGenerator : MonoBehaviour {
@@ -28,9 +29,13 @@ public class WorldGenerator : MonoBehaviour {
         Seeded,
     }
 
-    private readonly Dictionary<Vector2Int, Sector> _activeSectors = new Dictionary<Vector2Int, Sector>();
-    private readonly Queue<Sector> _sectorsReleased = new Queue<Sector>();
-    private readonly Queue<Vector2Int> _sectorsToRender = new Queue<Vector2Int>();
+    private Dictionary<Vector2Int, Sector> _activeSectors = new Dictionary<Vector2Int, Sector>();
+    private Queue<Sector> _sectorsReleased = new Queue<Sector>();
+    // A sector is created in 2 phases:
+    // First the block types and mesh data are generated
+    private Queue<Vector2Int> _sectorsToGenerate = new Queue<Vector2Int>();
+    // Second the actual Unity meshes are created
+    private List<Sector> _sectorsToVisualize = new List<Sector>();
 
     public static WorldGenerator Instance { get; private set; }
 
@@ -75,33 +80,21 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void GenerateInitialMap() {
-        var sectors = new List<Sector>();
         for (var x = -viewRange; x <= viewRange; x++) {
             for (var y = -viewRange; y <= viewRange; y++) {
                 var sectorPos = new Vector2Int(x, y);
-                sectors.Add(GetOrGenerateSector(sectorPos));
+                _sectorsToGenerate.Enqueue(sectorPos);
             }
         }
-        Sector.RenderSectorsParallel(sectors);
+        // Sector.RenderSectorsParallel(sectors);
     }
 
+    // TODO outdated
     private void GenerateSector(Sector sector, in Vector2Int pos) {
         // TODO BUG sometimes is triggered before last one finished
         sector.offset = pos;
         sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
-        var job = new SectorGenerationJob {
-            noiseMaps = _noiseMapsNative,
-            typeNoise = typeNoise,
-            generatedBlocks = sector.blocksNative,
-            sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
-            sectorOffset = pos.ToVector2Int(),
-            thresholds = groundTypeThresholds,
-            worldChanges = _worldChanges,
-            neighbors = sector.neighbors,
-        };
-        sector.StartGeneratingGrid(job);
-        // TODO probably should not add until generation is done
-        _activeSectors.Add(pos, sector);
+        
     }
 
     private float SampleMaps(in int2 pos) {
@@ -126,7 +119,7 @@ public class WorldGenerator : MonoBehaviour {
             for (var d = -viewRange-1; d <= viewRange+1; d++) {
                 var y = oldPos.y + d;
                 ReleaseSector(new Vector2Int(removeX-delta.x, y));
-                _sectorsToRender.Enqueue(new Vector2Int(addX, y));
+                _sectorsToGenerate.Enqueue(new Vector2Int(addX, y));
             }
         }
 
@@ -137,7 +130,7 @@ public class WorldGenerator : MonoBehaviour {
             for (var d = -viewRange-1; d <= viewRange+1; d++) {
                 var x = oldPos.x + d;
                 ReleaseSector(new Vector2Int(x, removeY-delta.y));
-                _sectorsToRender.Enqueue(new Vector2Int(x, addY));
+                _sectorsToGenerate.Enqueue(new Vector2Int(x, addY));
             }
         }
         
@@ -152,13 +145,41 @@ public class WorldGenerator : MonoBehaviour {
         sector.Hide();
     }
 
+    // TODO Should be update?
     private void LateUpdate() {
-        var sectorsToGenerate = new List<Sector>(_sectorsToRender.Count);
-        while (_sectorsToRender.Count > 0 && sectorsToGenerate.Count < JobsUtility.JobWorkerCount) {
-            var newPos = _sectorsToRender.Dequeue();
-            sectorsToGenerate.Add(GetOrGenerateSector(newPos));
+        // Start queuing long running jobs for new sectors
+        Profiler.BeginSample("Enqueue new generations");
+        var newSectorsToVisualize = new List<Sector>();
+        while (_sectorsToGenerate.Count > 0 && newSectorsToVisualize.Count < JobsUtility.JobWorkerCount) {
+            var newPos = _sectorsToGenerate.Dequeue();
+            var sector = GetOrGenerateSector(newPos);
+            var job = new SectorGenerationJob {
+                noiseMaps = _noiseMapsNative,
+                typeNoise = typeNoise,
+                generatedBlocks = sector.blocksNative,
+                sectorSize = new int2(Sector.sectorSize, Sector.sectorSizeHeight),
+                sectorOffset = sector.offset.ToInt2(),
+                thresholds = groundTypeThresholds,
+                worldChanges = _worldChanges,
+                neighbors = sector.neighbors,
+            };
+            sector.StartGeneratingGrid(job);
+            newSectorsToVisualize.Add(sector);
+            // TODO probably should not add until generation is done
+            _activeSectors.Add(sector.offset, sector);
         }
-        Sector.RenderSectorsParallel(sectorsToGenerate);
+        JobHandle.ScheduleBatchedJobs();
+        Profiler.EndSample();
+        // Finish jobs from previous frame
+        Profiler.BeginSample("Render sectors from prev frame");
+        Sector.RenderSectorsParallel(_sectorsToVisualize);
+        Profiler.EndSample();
+        Profiler.BeginSample("Wait on generations");
+        _sectorsToVisualize = newSectorsToVisualize;
+        foreach (var sector in newSectorsToVisualize) {
+            sector.meshJobHandle.Complete();
+        }
+        Profiler.EndSample();
         // TODO repeat if frame budget available
     }
 

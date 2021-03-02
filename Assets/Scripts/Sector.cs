@@ -141,6 +141,8 @@ public class Sector : MonoBehaviour {
     }
 
     public static void RenderSectorsParallel(List<Sector> sectorsToGenerate) {
+        if (sectorsToGenerate.Count == 0)
+            return;
         var bakeJobs = new List<JobHandle>(sectorsToGenerate.Count);
         for (int i = 0; i < sectorsToGenerate.Count; i++) {
             var sector = sectorsToGenerate[i];
