@@ -20,7 +20,6 @@ public class Sector : MonoBehaviour {
     public static int sectorSizeHeight;
     private static int sectorSizeMult;
     
-    public JobHandle blocksJobHandle;
     public JobHandle meshJobHandle;
     public NativeArray<BlockType> blocksNative;
     public NativeHashMap<int3, BlockType> neighbors;
@@ -71,27 +70,15 @@ public class Sector : MonoBehaviour {
         );
     }
 
-    // TODO refactor generation methods
+    // TODO refactor generation methods - probably not needed anymore
     private void StartGeneratingMesh() {
+        // TODO BUG sometimes is triggered before last one finished
         // TODO maybe not the best place for this?
         if (!_isGridGenerated) {
             FinishGeneratingGrid();
         }
         if (_isGridGenerated && _isMeshGenerated)
             return;
-        
-        foreach (var helper in _meshHelpers)
-            helper.Clear();
-        
-        var job = new MeshGenerationJob {
-            solidMesh = _meshHelpers[0],
-            waterMesh = _meshHelpers[1],
-            sectorSize = new int3(sectorSize, sectorSizeHeight, sectorSizeMult),
-            blocks = blocksNative,
-            neighbors = neighbors,
-        };
-        // TODO BUG sometimes is triggered before last one finished
-        meshJobHandle = job.Schedule();
     }
 
     private void AssignRenderMesh() {
@@ -105,8 +92,7 @@ public class Sector : MonoBehaviour {
 
     private Mesh PrepareCollisionMesh() {
         Profiler.BeginSample("Generating collision mesh");
-        // TODO use a different mesh?
-        _collisionMesh = _meshHelpers[0].GetRenderMesh();
+        _collisionMesh = _meshHelpers[0].GetCollisionMesh();
         Profiler.EndSample();
         return _collisionMesh;
     }
@@ -126,13 +112,19 @@ public class Sector : MonoBehaviour {
         return sectorSize * sectorSize * sectorSizeHeight;
     }
 
-    public void StartGeneratingGrid() {
+    public void StartGeneratingGrid(SectorGenerationJob sectorGenerationJob) {
+        foreach (var helper in _meshHelpers)
+            helper.Clear();
         _isGridGenerated = false;
-        if (blocksJobHandle.IsCompleted) {
-        }
-        else {
-            Debug.LogWarning("Grid generation started before previous has completed. Probably a logical error");
-        }
+        var generationHandle = sectorGenerationJob.Schedule();
+        var meshHandle = new MeshGenerationJob {
+            solidMesh = _meshHelpers[0],
+            waterMesh = _meshHelpers[1],
+            sectorSize = new int3(sectorSize, sectorSizeHeight, sectorSizeMult),
+            blocks = blocksNative,
+            neighbors = neighbors,
+        };
+        meshJobHandle = meshHandle.Schedule(generationHandle);
     }
 
     private void OnDestroy() {
@@ -149,12 +141,6 @@ public class Sector : MonoBehaviour {
     }
 
     public static void RenderSectorsParallel(List<Sector> sectorsToGenerate) {
-        JobHandle.ScheduleBatchedJobs();
-        foreach (var sector in sectorsToGenerate) {
-            sector.blocksJobHandle.Complete();
-            sector.StartGeneratingMesh();
-        }
-        JobHandle.ScheduleBatchedJobs();
         var bakeJobs = new List<JobHandle>(sectorsToGenerate.Count);
         for (int i = 0; i < sectorsToGenerate.Count; i++) {
             var sector = sectorsToGenerate[i];

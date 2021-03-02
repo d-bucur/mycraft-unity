@@ -86,9 +86,9 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void GenerateSector(Sector sector, in Vector2Int pos) {
+        // TODO BUG sometimes is triggered before last one finished
         sector.offset = pos;
         sector.transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
-        sector.StartGeneratingGrid();
         var job = new SectorGenerationJob {
             noiseMaps = _noiseMapsNative,
             typeNoise = typeNoise,
@@ -99,9 +99,7 @@ public class WorldGenerator : MonoBehaviour {
             worldChanges = _worldChanges,
             neighbors = sector.neighbors,
         };
-        // TODO BUG sometimes is triggered before last one finished
-        var handle = job.Schedule();
-        sector.blocksJobHandle = handle;
+        sector.StartGeneratingGrid(job);
         // TODO probably should not add until generation is done
         _activeSectors.Add(pos, sector);
     }
