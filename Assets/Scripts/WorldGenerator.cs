@@ -28,6 +28,7 @@ public class WorldGenerator : MonoBehaviour {
         Seeded,
     }
 
+    // TODO HIGH bug: sometimes sectors get generated twice
     private Dictionary<Vector2Int, Sector> _activeSectors = new Dictionary<Vector2Int, Sector>();
     private Queue<Sector> _sectorsReleased = new Queue<Sector>();
     // A sector is created in 2 phases:
@@ -73,9 +74,8 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     private void GenerateInitialMap() {
-        // TODO start from center
-        for (var x = -viewRange; x <= viewRange; x++) {
-            for (var y = -viewRange; y <= viewRange; y++) {
+        for (var x = 0; x <= viewRange; x = (x > 0) ? -x : -x + 1) {
+            for (var y = 0; y <= viewRange; y = (y > 0) ? -y : -y + 1) {
                 var sectorPos = new Vector2Int(x, y);
                 _sectorsToGenerate.Enqueue(sectorPos);
             }

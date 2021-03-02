@@ -46,7 +46,7 @@ public struct SectorGenerationJob : IJob {
         var internalPos = new int3(x, 0, z);
         for (int y = 0; y < sectorSize.y; y++) {
             internalPos.y = y;
-            // TODO BUG typenoise is sometimes wrong on border
+            // TODO BUG HIGH typenoise is sometimes wrong on border
             var blockType = GetBlockTypeWithDiffs(planePos, groundHeight, typeNoiseSample);
             neighbors[internalPos] = blockType;
             planePos.y++;
