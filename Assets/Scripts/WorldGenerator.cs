@@ -144,7 +144,6 @@ public class WorldGenerator : MonoBehaviour {
 
     private void GenerateNewSectorsParallel() {
         Profiler.BeginSample("Generate new sectors");
-        // TODO can move scheduling to update and waiting to lateupdate
         while (_sectorsToGenerate.Count > 0 && _sectorsToVisualize.Count < JobsUtility.JobWorkerCount) {
             var newPos = _sectorsToGenerate.Dequeue();
             var sector = GetOrGenerateSector(newPos);
@@ -196,7 +195,7 @@ public class WorldGenerator : MonoBehaviour {
         sector.AddBlock(internalPos, BlockType.Grass);
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
         _worldChanges.AddOrReplace(planePos.ToInt3(), BlockType.Grass);
-        sector.AssignMeshParallel();
+        _sectorsToGenerate.Enqueue(sector.offset);
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
@@ -206,7 +205,7 @@ public class WorldGenerator : MonoBehaviour {
         var blockType = planePos.y < groundTypeThresholds.water ? BlockType.Water : BlockType.Empty;
         sector.AddBlock(internalPos, blockType);
         _worldChanges.AddOrReplace(planePos.ToInt3(), blockType);
-        sector.AssignMeshParallel();
+        _sectorsToGenerate.Enqueue(sector.offset);
     }
 
     private void OnDestroy() {

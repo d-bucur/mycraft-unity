@@ -61,13 +61,14 @@ public class Sector : MonoBehaviour {
         );
     }
 
-    private void AssignRenderMesh() {
+    private int AssignRenderMesh() {
         Profiler.BeginSample("Generating render mesh");
         var solidsMesh = _meshHelpers[0].GetRenderMesh();
         GetComponent<MeshFilter>().mesh = solidsMesh;
         var transparentsMesh = _meshHelpers[1].GetRenderMesh();
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
         Profiler.EndSample();
+        return solidsMesh.vertexCount + transparentsMesh.vertexCount;
     }
 
     private Mesh PrepareCollisionMesh() {
@@ -113,8 +114,11 @@ public class Sector : MonoBehaviour {
             bakeJobs.Add(job);
         }
         JobHandle.ScheduleBatchedJobs();
-        foreach (var s in sectorsToGenerate)
-            s.AssignRenderMesh();
+        int triangleCount = 0;
+        foreach (var s in sectorsToGenerate) {
+            triangleCount += s.AssignRenderMesh();
+        }
+        // Debug.Log($"Generated {triangleCount} triangles");
         for (var i = 0; i < sectorsToGenerate.Count; i++) {
             bakeJobs[i].Complete();
             var s = sectorsToGenerate[i];

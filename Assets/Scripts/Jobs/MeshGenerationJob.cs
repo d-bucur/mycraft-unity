@@ -81,7 +81,6 @@ public struct MeshGenerationJob : IJob {
         SweepData last = default;
 
         // Sweep up
-        // TODO PERF is it faster to sweep by index instead of position?
         for (var x = 0; x < sectorSize.x; x++) {
             for (var z = 0; z < sectorSize.x; z++) {
                 for (var y = 0; y < sectorSize.y; y++) {
