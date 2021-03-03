@@ -48,6 +48,10 @@ public class WorldGenerator : MonoBehaviour {
         GenerateInitialMap();
     }
 
+    private void Start() {
+        Application.targetFrameRate = frameRateLimit;
+    }
+
     private void PrepareNativeMaps() {
         _noiseMapsNative = new NativeArray<NoiseMap>(noiseMaps.Count, Allocator.Persistent);
         for (int i = 0; i < noiseMaps.Count; i++) {
@@ -68,10 +72,6 @@ public class WorldGenerator : MonoBehaviour {
             map.offset = new float2(Random.Range(-1000.0f, 1000.0f), Random.Range(-1000.0f, 1000.0f));
             noiseMaps[i] = map;
         }
-    }
-
-    private void Start() {
-        Application.targetFrameRate = frameRateLimit;
     }
 
     private void GenerateInitialMap() {
@@ -189,24 +189,25 @@ public class WorldGenerator : MonoBehaviour {
     }
 
     public void ConstructBlock(Vector3Int worldPos) {
-        var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
-        var sector = GetSector(sectorPos);
-        sector.AddBlock(internalPos, BlockType.Grass);
-        var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
-        _worldChanges.AddOrReplace(planePos.ToInt3(), BlockType.Grass);
-        _sectorsToGenerate.Enqueue(sector.offset);
-        var neighboringSector = sector.BorderedSector(internalPos);
-        if (neighboringSector.HasValue) {
-            _sectorsToGenerate.Enqueue(neighboringSector.Value);
-        }
+        ChangeBlock(worldPos, false);
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
+        ChangeBlock(worldPos, true);
+    }
+
+    private void ChangeBlock(Vector3Int worldPos, bool destroy) {
         var (sectorPos, internalPos) = Coordinates.WorldToInternalPos(worldPos);
         var sector = GetSector(sectorPos);
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
-        var blockType = planePos.y < groundTypeThresholds.water ? BlockType.Water : BlockType.Empty;
-        sector.AddBlock(internalPos, blockType);
+        BlockType blockType;
+        if (destroy) {
+            blockType = planePos.y < groundTypeThresholds.water ? BlockType.Water : BlockType.Empty;
+            sector.AddBlock(internalPos, blockType);
+        }
+        else {
+            blockType = BlockType.Grass;
+        }
         _worldChanges.AddOrReplace(planePos.ToInt3(), blockType);
         _sectorsToGenerate.Enqueue(sector.offset);
         var neighboringSector = sector.BorderedSector(internalPos);

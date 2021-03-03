@@ -28,9 +28,10 @@ public struct MeshGenerationJob : IJob {
     private enum Direction {
         UP, DOWN, RIGHT, LEFT, FORWARD, BACK
     }
-    
+    // harcoded value for the number of tiles in the texture
     private const int _uvMapSize = 4;
 
+    // Vertex positions for a cube
     private const float _s = 0.5f;
     private static readonly Vector3 _rub = new Vector3(_s, _s, -_s);
     private static readonly Vector3 _lub = new Vector3(-_s, _s, -_s);
@@ -41,6 +42,7 @@ public struct MeshGenerationJob : IJob {
     private static readonly Vector3 _ldf = new Vector3(-_s, -_s, _s);
     private static readonly Vector3 _rdf = new Vector3(_s, -_s, _s);
     
+    // Normal directions for a cube
     private static readonly Vector3 _nu = new Vector3(0, 1, 0);
     private static readonly Vector3 _nd = new Vector3(0, -1, 0);
     private static readonly Vector3 _nf = new Vector3(0, 0, 1);
@@ -49,6 +51,9 @@ public struct MeshGenerationJob : IJob {
     private static readonly Vector3 _nl = new Vector3(-1, 0, 0);
     
     private void SweepBorderFaces() {
+        // Border faces are more problematic, because they need to read a block that is outside of this sector
+        // To enable this, the neighbors map is a temporary structure that is sampled in the previous phase
+        // and provides an easy to access copy
         for (var z = 0; z < sectorSize.x; z++) {
             for (var y = 0; y < sectorSize.y; y++) {
                 var lastPos = new int3(-1, y, z);
@@ -164,7 +169,7 @@ public struct MeshGenerationJob : IJob {
     }
 
     private void AddFace(in Vector3 center, Direction dir, BlockType type, ref MeshHelper mesh) {
-        var uvPos = (int)type;
+        var uvPos = (int)type; // vertical position in the map corresponds to enum values
         switch (dir) {
             case Direction.UP:
                 AddFaceInternal(_rub, _lub, _luf, _ruf, center, 0, uvPos, ref mesh, _nu);
