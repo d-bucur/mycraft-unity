@@ -5,7 +5,6 @@ using Unity.Jobs;
 using Unity.Jobs.LowLevel.Unsafe;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Profiling;
 using Random = UnityEngine.Random;
 
 public class WorldGenerator : MonoBehaviour {
@@ -27,14 +26,16 @@ public class WorldGenerator : MonoBehaviour {
         Random,
         Seeded,
     }
-
-    // TODO HIGH bug: sometimes sectors get generated twice
+    
+    // And index of sectors that are currently generated or being generated
     private Dictionary<Vector2Int, Sector> _activeSectors = new Dictionary<Vector2Int, Sector>();
+    // A pool for released sectors to be reused
     private Queue<Sector> _sectorsReleased = new Queue<Sector>();
     // A sector is created in 2 phases:
     // First the block types and mesh data are generated
     private Queue<Vector2Int> _sectorsToGenerate = new Queue<Vector2Int>();
-    // Second the actual Unity meshes are created
+    // Second the data is actually copied into Unity meshes
+    // The two phases run in alternating frames
     private List<Sector> _sectorsToVisualize = new List<Sector>();
 
     public static WorldGenerator Instance { get; private set; }
@@ -126,24 +127,23 @@ public class WorldGenerator : MonoBehaviour {
     private void ReleaseSector(Vector2Int pos) {
         if (!_activeSectors.TryGetValue(pos, out var sector))
             return;
+        _activeSectors.Remove(pos);
         _sectorsReleased.Enqueue(sector);
         sector.Hide();
     }
 
     private void LateUpdate() {
+        // Alternate between the two phases of sector generation
         if (_sectorsToVisualize.Count == 0) {
             GenerateNewSectorsParallel();
         }
         else {
-            Profiler.BeginSample("Render sectors from prev frame");
             Sector.AssignMeshesParallel(_sectorsToVisualize);
             _sectorsToVisualize.Clear();
-            Profiler.EndSample();
         }
     }
 
     private void GenerateNewSectorsParallel() {
-        Profiler.BeginSample("Generate new sectors");
         while (_sectorsToGenerate.Count > 0 && _sectorsToVisualize.Count < JobsUtility.JobWorkerCount) {
             var newPos = _sectorsToGenerate.Dequeue();
             var sector = GetOrGenerateSector(newPos);
@@ -159,13 +159,11 @@ public class WorldGenerator : MonoBehaviour {
             };
             sector.StartMeshGeneration(job);
             _sectorsToVisualize.Add(sector);
-            _activeSectors.Add(sector.offset, sector);
         }
         JobHandle.ScheduleBatchedJobs();
         foreach (var sector in _sectorsToVisualize) {
             sector.meshJobHandle.Complete();
         }
-        Profiler.EndSample();
     }
 
     private Sector GetOrGenerateSector(Vector2Int sectorPos) {
@@ -175,13 +173,13 @@ public class WorldGenerator : MonoBehaviour {
         }
         if (_sectorsReleased.Count > 0) {
             sector = _sectorsReleased.Dequeue();
-            _activeSectors.Remove(sector.offset);
         }
         else {
             sector = Instantiate(sectorTemplate);
             sector.Init();
         }
         sector.SetOffset(sectorPos);
+        _activeSectors.Add(sector.offset, sector);
         return sector;
     }
 

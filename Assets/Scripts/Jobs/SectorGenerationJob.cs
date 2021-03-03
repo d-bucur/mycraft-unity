@@ -4,6 +4,9 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 
+/** Generates the block types in a sector by sampling noise maps and overriding the values with
+ * any player modifications
+ */
 [BurstCompile]
 public struct SectorGenerationJob : IJob {
     [ReadOnly] public NativeArray<NoiseMap> noiseMaps;

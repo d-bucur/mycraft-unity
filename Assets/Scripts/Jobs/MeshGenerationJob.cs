@@ -5,6 +5,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
+/** Sweeps blocks inside a sector to generate visible meshes. The mesh data is stored for later use */
 [BurstCompile]
 public struct MeshGenerationJob : IJob {
     public MeshHelper solidMesh;
