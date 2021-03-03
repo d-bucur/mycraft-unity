@@ -137,7 +137,7 @@ public class Sector : MonoBehaviour {
         try {
             neighbors.Dispose();
         }
-        catch (ObjectDisposedException e) {
+        catch (ObjectDisposedException) {
         }
         foreach (var mesh in _meshHelpers) {
             mesh.Dispose();
@@ -151,5 +151,15 @@ public class Sector : MonoBehaviour {
 
     public void AllocateNeighbors() {
         neighbors = new NativeHashMap<int3, BlockType>(sectorSize * sectorSize * 2, Allocator.TempJob);
+    }
+
+    // Returns the adjacent sector the the position. This is only used to determine if 
+    // changing this block should trigger a mesh sweep on a neighboring sector as well
+    public Vector2Int? BorderedSector(Vector3Int internalPos) {
+        if (internalPos.x == sectorSize - 1)
+            return offset + new Vector2Int(1, 0);
+        if (internalPos.z == sectorSize - 1)
+            return offset + new Vector2Int(0, 1);
+        return null;
     }
 }

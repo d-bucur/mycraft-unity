@@ -195,6 +195,10 @@ public class WorldGenerator : MonoBehaviour {
         var planePos = Coordinates.InternalToPlanePos(sectorPos, internalPos);
         _worldChanges.AddOrReplace(planePos.ToInt3(), BlockType.Grass);
         _sectorsToGenerate.Enqueue(sector.offset);
+        var neighboringSector = sector.BorderedSector(internalPos);
+        if (neighboringSector.HasValue) {
+            _sectorsToGenerate.Enqueue(neighboringSector.Value);
+        }
     }
 
     public void DestroyBlock(Vector3Int worldPos) {
@@ -205,6 +209,10 @@ public class WorldGenerator : MonoBehaviour {
         sector.AddBlock(internalPos, blockType);
         _worldChanges.AddOrReplace(planePos.ToInt3(), blockType);
         _sectorsToGenerate.Enqueue(sector.offset);
+        var neighboringSector = sector.BorderedSector(internalPos);
+        if (neighboringSector.HasValue) {
+            _sectorsToGenerate.Enqueue(neighboringSector.Value);
+        }
     }
 
     private void OnDestroy() {

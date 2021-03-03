@@ -31,7 +31,6 @@ public class Builder : MonoBehaviour {
         
         if (!Input.GetKeyDown(KeyCode.Mouse1)) return;
         WorldGenerator.Instance.DestroyBlock(target);
-        // TODO bug: if block is on sector border it should redraw 2 sectors
     }
 
     private void CheckConstruct(RaycastHit hit) {

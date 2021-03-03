@@ -26,7 +26,7 @@ public struct SectorGenerationJob : IJob {
             var planePos = Coordinates.InternalToPlanePos(sectorOffset, internalPos, sectorSize);
             if (index % sectorSize.y == 0) {
                 groundHeight = SampleMaps(planePos.xz);
-                typeNoiseSample = SampleMaps(planePos.xz);
+                typeNoiseSample = typeNoise.Sample(planePos.xz);
             }
             generatedBlocks[index] = GetBlockTypeWithDiffs(planePos, groundHeight, typeNoiseSample);
         }
@@ -49,7 +49,6 @@ public struct SectorGenerationJob : IJob {
         var internalPos = new int3(x, 0, z);
         for (int y = 0; y < sectorSize.y; y++) {
             internalPos.y = y;
-            // TODO BUG HIGH typenoise is sometimes wrong on border
             var blockType = GetBlockTypeWithDiffs(planePos, groundHeight, typeNoiseSample);
             neighbors[internalPos] = blockType;
             planePos.y++;

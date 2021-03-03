@@ -181,7 +181,6 @@ MonoBehaviour:
     offset:
       x: 0
       y: 0
-  regenTimeBudget: 0.01
   sectorTemplate: {fileID: 569589763807964434, guid: 4d04bae28f2478545ac742228b7fd763, type: 3}
   groundTypeThresholds:
     water: -10
@@ -273,7 +272,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6596014162597018839, guid: cd8021b580a98044192a7a15c0d4a413, type: 3}
       propertyPath: m_Name
-      value: Block
+      value: Preview
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 5729824392430946467, guid: cd8021b580a98044192a7a15c0d4a413, type: 3}
@@ -952,7 +951,7 @@ MonoBehaviour:
   playerCamera: {fileID: 963194227}
   lookSpeed: 2
   lookXLimit: 85
-  flyMode: 1
+  flyMode: 0
   canMove: 1
 --- !u!143 &2095145686
 CharacterController:
