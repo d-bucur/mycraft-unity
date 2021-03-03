@@ -1,10 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Profiling;
 
 [RequireComponent(typeof(MeshFilter))]
 [RequireComponent(typeof(MeshCollider))]
@@ -34,7 +34,6 @@ public class Sector : MonoBehaviour {
             _meshHelpers[i] = new MeshHelper(averageFaces);
         }
         blocksNative = new NativeArray<BlockType>(GetTotalBlocks(), Allocator.Persistent);
-        neighbors = new NativeHashMap<int3, BlockType>(sectorSize * sectorSize * 2, Allocator.Persistent);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -62,19 +61,15 @@ public class Sector : MonoBehaviour {
     }
 
     private int AssignRenderMesh() {
-        Profiler.BeginSample("Generating render mesh");
         var solidsMesh = _meshHelpers[0].GetRenderMesh();
         GetComponent<MeshFilter>().mesh = solidsMesh;
         var transparentsMesh = _meshHelpers[1].GetRenderMesh();
         transform.GetChild(0).GetComponent<MeshFilter>().mesh = transparentsMesh;
-        Profiler.EndSample();
         return solidsMesh.vertexCount + transparentsMesh.vertexCount;
     }
 
     private Mesh PrepareCollisionMesh() {
-        Profiler.BeginSample("Generating collision mesh");
         _collisionMesh = _meshHelpers[0].GetCollisionMesh();
-        Profiler.EndSample();
         return _collisionMesh;
     }
 
@@ -100,6 +95,7 @@ public class Sector : MonoBehaviour {
             neighbors = neighbors,
         };
         meshJobHandle = meshHandle.Schedule(generationHandle);
+        neighbors.Dispose(meshJobHandle);
     }
 
     public static void AssignMeshesParallel(List<Sector> sectorsToGenerate) {
@@ -114,6 +110,8 @@ public class Sector : MonoBehaviour {
             bakeJobs.Add(job);
         }
         JobHandle.ScheduleBatchedJobs();
+        // Creating the meshes takes some time, but the Unity API forces this to be done in the main thread
+        // So there is no reason to parallelize anything here
         int triangleCount = 0;
         foreach (var s in sectorsToGenerate) {
             triangleCount += s.AssignRenderMesh();
@@ -136,7 +134,11 @@ public class Sector : MonoBehaviour {
 
     private void OnDestroy() {
         blocksNative.Dispose();
-        neighbors.Dispose();
+        try {
+            neighbors.Dispose();
+        }
+        catch (ObjectDisposedException e) {
+        }
         foreach (var mesh in _meshHelpers) {
             mesh.Dispose();
         }
@@ -145,5 +147,9 @@ public class Sector : MonoBehaviour {
     public void SetOffset(in Vector2Int pos) {
         _offset = pos;
         transform.position = new Vector3(pos.x, 0, pos.y) * sectorSize;
+    }
+
+    public void AllocateNeighbors() {
+        neighbors = new NativeHashMap<int3, BlockType>(sectorSize * sectorSize * 2, Allocator.TempJob);
     }
 }

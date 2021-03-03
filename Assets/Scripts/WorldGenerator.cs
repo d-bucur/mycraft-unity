@@ -147,6 +147,7 @@ public class WorldGenerator : MonoBehaviour {
         while (_sectorsToGenerate.Count > 0 && _sectorsToVisualize.Count < JobsUtility.JobWorkerCount) {
             var newPos = _sectorsToGenerate.Dequeue();
             var sector = GetOrGenerateSector(newPos);
+            sector.AllocateNeighbors();
             var job = new SectorGenerationJob {
                 noiseMaps = _noiseMapsNative,
                 typeNoise = typeNoise,

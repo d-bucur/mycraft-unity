@@ -12,7 +12,7 @@ public struct MeshGenerationJob : IJob {
     public MeshHelper waterMesh;
     [ReadOnly] public int3 sectorSize;
     [ReadOnly] public NativeArray<BlockType> blocks;
-    [ReadOnly] public NativeHashMap<int3, BlockType> neighbors;  // TODO deallocate on finish, when double generation bug is resolved
+    [ReadOnly] public NativeHashMap<int3, BlockType> neighbors;
 
     public void Execute() {
         SweepMeshFaces();
